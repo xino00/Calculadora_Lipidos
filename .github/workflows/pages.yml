@@ -12,9 +12,7 @@ concurrency:
   cancel-in-progress: true
 jobs:
   deploy:
-    # Enable Pages in Settings and set repository variable ENABLE_PAGES=true.
-    # The gate keeps an initially private repository from producing failing deploys.
-    if: vars.ENABLE_PAGES == 'true'
+    # Requires Settings → Pages → Source: GitHub Actions.
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
