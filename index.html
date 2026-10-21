@@ -7,6 +7,36 @@
     <meta name="description" content="Calculadora independiente de riesgo y objetivos lipídicos. Marco ESC/EAS 2025. Datos solo en memoria." />
     <title>Lípidos · Consulta</title>
     <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
+    <script>
+      // Show startup failures on screen instead of a blank page. Nothing is sent anywhere.
+      (function () {
+        var shown = false;
+        function show(detail) {
+          if (shown) return;
+          if (!document.body) { document.addEventListener('DOMContentLoaded', function () { show(detail); }); return; }
+          var root = document.getElementById('root');
+          if (root && root.children.length && !root.querySelector('.boot-status')) return;
+          shown = true;
+          var box = document.createElement('div');
+          box.setAttribute('role', 'alert');
+          box.style.cssText = 'font:16px/1.5 system-ui,sans-serif;color:#7a2e12;background:#fff4ec;border:1px solid #f0c9b0;border-radius:10px;margin:20px;padding:16px 18px';
+          box.textContent = 'No se ha podido cargar la calculadora. Recarga la página o prueba con otro navegador actualizado. Detalle: ' + detail;
+          document.body.insertBefore(box, document.body.firstChild);
+        }
+        function later(detail) { setTimeout(function () { show(detail); }, 0); }
+        window.addEventListener('error', function (e) {
+          var t = e.target;
+          if (t && t !== window && (t.src || t.href)) later('no se pudo descargar ' + (t.src || t.href));
+          else later(e.message || 'error desconocido');
+        }, true);
+        window.addEventListener('unhandledrejection', function (e) { later(String(e.reason)); });
+      })();
+    </script>
   </head>
-  <body><div id="root"></div><script type="module" src="/src/main.tsx"></script></body>
+  <body>
+    <div id="root"><p class="boot-status" style="font:16px/1.5 system-ui,sans-serif;color:#173d34;margin:0;padding:32px 20px">Cargando la calculadora…</p></div>
+    <noscript><p style="font:16px/1.5 system-ui,sans-serif;color:#173d34;margin:0;padding:0 20px">La calculadora necesita JavaScript activado.</p></noscript>
+    <script nomodule>document.getElementById('root').textContent = 'Este navegador es demasiado antiguo para la calculadora. Actualízalo o usa otro.';</script>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
 </html>

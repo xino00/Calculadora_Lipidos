@@ -4,7 +4,7 @@
 
 **Calculadora clínica de riesgo cardiovascular, objetivos de LDL-c, lipoproteína(a) y tratamiento hipolipemiante en adultos, basada en la actualización 2025 de las guías ESC/EAS de dislipidemias.**
 
-**Abrir la calculadora: https://xino00.github.io/Calculadora_Lipidos/**
+**Abrir la calculadora: [xino00.github.io/Calculadora_Lipidos](https://xino00.github.io/Calculadora_Lipidos/)**
 
 > [!WARNING]
 > **Prototipo pendiente de validación clínica externa.** Es una herramienta de apoyo para profesionales sanitarios: no sustituye al juicio clínico ni a la lectura de la guía. No es una herramienta oficial de la ESC ni de la EAS ni cuenta con su aval.
