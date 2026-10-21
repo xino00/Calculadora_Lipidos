@@ -69,9 +69,7 @@ No prescribe dosis individuales ni comprueba todas las contraindicaciones/intera
 
 Código en [github.com/xino00/Calculadora_Lipidos](https://github.com/xino00/Calculadora_Lipidos) (público). Rama principal: `main`. Cada cambio en `main` y cada pull request ejecutan `ci.yml` (instalación, pruebas y compilación).
 
-El código es visible para cualquiera: no introducir claves API ni datos de pacientes en el repositorio, issues ni pull requests. El archivo `.openai/hosting.json` identifica el despliegue de Sites, pero no contiene secretos ni afecta a GitHub Pages.
-
-El repositorio no incluye todavía un archivo de licencia; sin él, el código no otorga permisos de reutilización a terceros.
+El código es visible para cualquiera: no introducir claves API ni datos de pacientes en el repositorio, issues ni pull requests.
 
 ## GitHub Pages
 
@@ -100,3 +98,7 @@ La implementación contiene reglas y cálculos propios basados en hechos clínic
 - [CIMA: Nilemdo](https://cima.aemps.es/cima/dochtml/ft/1201425002/FT_1201425002.html) y [atorvastatina](https://cima.aemps.es/cima/dochtml/ft/74072/FT_74072.html).
 
 Revisión de fuentes: 21/10/2026.
+
+## Licencia
+
+Código bajo [licencia MIT](LICENSE), proporcionado «tal cual», sin garantía de ningún tipo. La licencia cubre solo el código de este repositorio; las guías ESC/EAS y su material siguen perteneciendo a sus titulares (véase el apartado anterior).
