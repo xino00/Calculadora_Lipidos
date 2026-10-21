@@ -1,5 +1,7 @@
 # Lípidos · Consulta
 
+[![Clinical tests and build](https://github.com/xino00/Calculadora_Lipidos/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/xino00/Calculadora_Lipidos/actions/workflows/ci.yml)
+
 Aplicación web independiente, en español, para explorar riesgo cardiovascular, objetivos de LDL-c, Lp(a) y escenarios de tratamiento en adultos. Marco clínico **ESC/EAS 2025**. React + TypeScript + Vite; sin backend ni almacenamiento de datos clínicos.
 
 **Estado: prototipo funcional pendiente de validación clínica externa.** Las pruebas automatizadas verifican las reglas implementadas; no constituyen validación prospectiva, certificación ni aval de ESC/EAS. No es una aplicación oficial de estas sociedades.
@@ -9,6 +11,8 @@ Aplicación web independiente, en español, para explorar riesgo cardiovascular,
 Requiere Node.js 22.12 o superior (CI usa Node 24).
 
 ```bash
+git clone https://github.com/xino00/Calculadora_Lipidos.git
+cd Calculadora_Lipidos
 npm ci
 npm run dev
 npm test
@@ -61,36 +65,24 @@ El estado vive solo en memoria de React. Sin formularios de identificación, bac
 
 No prescribe dosis individuales ni comprueba todas las contraindicaciones/interacciones. Embarazo/lactancia, hepatopatía activa y diálisis suspenden la ruta farmacológica. No cubre pediatría, hipertrigliceridemia, financiación española ni toda la guía de ERC 2026. El marco es 2025; no afirma incorporar automáticamente guías posteriores.
 
-## Repositorio privado en GitHub
+## Repositorio
 
-Si se parte de la copia del código descargada, inicializar un repositorio nuevo (sin credenciales en archivos):
+Código en [github.com/xino00/Calculadora_Lipidos](https://github.com/xino00/Calculadora_Lipidos) (público). Rama principal: `main`. Cada cambio en `main` y cada pull request ejecutan `ci.yml` (instalación, pruebas y compilación).
 
-```bash
-git init -b main
-git add .
-git commit -m "Add lipid calculator with clinical boundary tests"
-gh auth login
-gh repo create esc-lipid-calculator --private --source=. --remote=origin --push
-```
+El código es visible para cualquiera: no introducir claves API ni datos de pacientes en el repositorio, issues ni pull requests. El archivo `.openai/hosting.json` identifica el despliegue de Sites, pero no contiene secretos ni afecta a GitHub Pages.
 
-Si se usa el checkout ya sincronizado con Sites, conservar su remoto y añadir GitHub con otro nombre:
-
-```bash
-gh repo create esc-lipid-calculator --private --source=. --remote=github --push
-```
-
-No introducir claves API ni datos de pacientes. El archivo `.openai/hosting.json` identifica el despliegue de Sites, pero no contiene secretos ni afecta a GitHub Pages.
+El repositorio no incluye todavía un archivo de licencia; sin él, el código no otorga permisos de reutilización a terceros.
 
 ## GitHub Pages
 
-En GitHub Free, Pages está disponible para repositorios públicos. Un repositorio privado requiere un plan compatible: **privado y Pages gratuito no son una combinación universal**. Mantener privado inicialmente; decidir explícitamente si se desea abrir el código. No se ha cambiado ninguna visibilidad desde esta aplicación.
-
-Cuando el repositorio tenga acceso a Pages:
+Al ser un repositorio público, Pages está disponible en GitHub Free. El workflow `pages.yml` permanece desactivado hasta habilitarlo:
 
 1. `Settings → Pages → Build and deployment → Source: GitHub Actions`.
 2. `Settings → Secrets and variables → Actions → Variables`: crear `ENABLE_PAGES` con valor `true`.
 3. En `Actions → Deploy GitHub Pages → Run workflow` (o subir un cambio a `main`).
-4. Abrir la URL devuelta por el despliegue. Puede añadirse a la pantalla de inicio del móvil desde el navegador. No se promete funcionamiento sin conexión: no hay service worker.
+4. Abrir la URL devuelta por el despliegue, previsiblemente `https://xino00.github.io/Calculadora_Lipidos/`. Puede añadirse a la pantalla de inicio del móvil desde el navegador. No se promete funcionamiento sin conexión: no hay service worker.
+
+Si el repositorio pasa a privado, Pages requiere un plan de GitHub compatible.
 
 El workflow ejecuta pruebas y compilación antes de publicar. Las acciones están fijadas a los SHA publicados en la guía de despliegue de Vite consultada el 21/10/2026. La activación y ejecución remota del workflow requiere un repositorio y los permisos correspondientes; el código local por sí solo no verifica el despliegue en GitHub.
 
