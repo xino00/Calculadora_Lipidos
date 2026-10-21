@@ -4,6 +4,8 @@
 
 **Calculadora clínica de riesgo cardiovascular, objetivos de LDL-c, lipoproteína(a) y tratamiento hipolipemiante en adultos, basada en la actualización 2025 de las guías ESC/EAS de dislipidemias.**
 
+**Abrir la calculadora: https://xino00.github.io/Calculadora_Lipidos/**
+
 > [!WARNING]
 > **Prototipo pendiente de validación clínica externa.** Es una herramienta de apoyo para profesionales sanitarios: no sustituye al juicio clínico ni a la lectura de la guía. No es una herramienta oficial de la ESC ni de la EAS ni cuenta con su aval.
 
@@ -129,13 +131,11 @@ docs/
 
 ### Publicación en GitHub Pages
 
-El workflow `pages.yml` está preparado pero desactivado hasta completar estos pasos (desde el navegador; la app móvil de GitHub no muestra estos ajustes):
+Cada cambio en `main` ejecuta `pages.yml`: instala, pasa las pruebas, compila y publica `dist/` en **https://xino00.github.io/Calculadora_Lipidos/**. Si alguna prueba falla, no se publica. También puede lanzarse a mano desde *Actions → Deploy GitHub Pages → Run workflow*.
 
-1. [Settings → Pages](https://github.com/xino00/Calculadora_Lipidos/settings/pages): en *Build and deployment → Source*, elegir **GitHub Actions**.
-2. [Settings → Secrets and variables → Actions → Variables](https://github.com/xino00/Calculadora_Lipidos/settings/variables/actions): crear `ENABLE_PAGES` con valor `true`.
-3. *Actions → Deploy GitHub Pages → Run workflow*, o subir un cambio a `main`.
+Requiere que [Settings → Pages](https://github.com/xino00/Calculadora_Lipidos/settings/pages) tenga *Source: GitHub Actions* (ya configurado; la app móvil de GitHub no muestra este ajuste, hay que usar el navegador).
 
-La web quedará en `https://xino00.github.io/Calculadora_Lipidos/`. Puede añadirse a la pantalla de inicio del móvil; no funciona sin conexión (no hay service worker).
+La web puede añadirse a la pantalla de inicio del móvil; no funciona sin conexión (no hay service worker).
 
 El repositorio es público: no subir claves ni datos de pacientes al código, issues o pull requests.
 
