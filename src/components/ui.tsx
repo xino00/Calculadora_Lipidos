@@ -32,6 +32,9 @@ export function NumberField({ label, value, onChange, unit, hint, min = 0, max =
     {unit && <span>{unit}</span>}
   </div><small id={`${id}-hint`} className={invalid ? 'field-error' : ''}>{invalid ? `Valor válido: ${min}–${max}${integer ? ', sin decimales' : ''}.` : hint}</small></div>;
 }
+export function Segmented<T extends string | boolean>({ label, value, options, onChange }: { label: string; value: T | null; options: Array<[T, string]>; onChange: (v: T) => void }) {
+  return <fieldset className="field"><legend>{label}</legend><div className="segmented">{options.map(([option, text]) => <button type="button" key={String(option)} className={value === option ? 'selected' : ''} aria-pressed={value === option} onClick={() => onChange(option)}>{text}</button>)}</div></fieldset>;
+}
 export function Check({ label, detail, checked, onChange }: { label: string; detail?: string; checked: boolean; onChange: (b: boolean) => void }) {
   return <label className={`check-row ${checked ? 'checked' : ''}`}><input type="checkbox" checked={checked} onChange={e => onChange(e.target.checked)} /><span><strong>{label}</strong>{detail && <small>{detail}</small>}</span></label>;
 }

@@ -17,6 +17,12 @@ export interface ClinicalInput {
   diabetesRiskFactors: number | null;
   organDamage: boolean;
   earlyType1: boolean;
+  scoreMode: 'calc' | 'manual';
+  sex: 'male' | 'female' | null;
+  smoker: boolean | null;
+  sbp: number | null;
+  totalChol: number | null;
+  hdl: number | null;
   score: number | null;
   region: Region;
   scoreConfirmed: boolean;
@@ -42,6 +48,7 @@ export interface RiskResult {
   notices: string[];
   scoreEligible: boolean;
   model: 'SCORE2' | 'SCORE2-OP' | null;
+  score: number | null;
   error: string | null;
   manual: boolean;
 }
@@ -50,6 +57,7 @@ export const EMPTY: ClinicalInput = {
   consider40: false, acuteCoronary: false, familial: 'no', severeRiskFactor: false,
   ckd: false, egfr: null, diabetes: 'no', diabetesDuration: null,
   diabetesRiskFactors: null, organDamage: false, earlyType1: false,
+  scoreMode: 'calc', sex: null, smoker: null, sbp: null, totalChol: null, hdl: null,
   score: null, region: 'low', scoreConfirmed: false, scorePretreatment: false,
   onTreatment: false, baseline: null, current: null, lpa: null, lpaUnit: 'mg/dL',
   modifier: false, reclassified: '', reclassificationReason: '', tolerance: 'full',

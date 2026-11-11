@@ -1,4 +1,6 @@
-import { type ClinicalInput, type RiskCategory, type RiskResult } from './types';
+import { REGION_LABEL, type ClinicalInput, type RiskCategory, type RiskResult } from './types';
+import { calculateScore2 } from './score2';
+import { format } from './format';
 
 export const RANK: Record<RiskCategory, number> = { low: 0, moderate: 1, high: 2, 'very-high': 3 };
 export function classifyScore(score: number): RiskCategory {
@@ -10,8 +12,15 @@ export function scoreModel(age: number | null): RiskResult['model'] {
   if (age === null || !Number.isInteger(age) || age < 40 || age > 89) return null;
   return age < 70 ? 'SCORE2' : 'SCORE2-OP';
 }
+// Prototype input limits, not physiological ranges.
+export const SCORE2_LIMITS = { sbp: [70, 250], totalChol: [50, 500], hdl: [10, 200] } as const;
+export function missingScoreInputs(i: ClinicalInput): string[] {
+  return [[i.sex, 'sexo'], [i.smoker, 'tabaquismo'], [i.totalChol, 'colesterol total'], [i.hdl, 'HDL-c'], [i.sbp, 'PA sistólica']]
+    .filter(([value]) => value === null).map(([, label]) => label as string);
+}
+const inLimits = (value: number | null, [min, max]: readonly [number, number]) => value !== null && Number.isFinite(value) && value >= min && value <= max;
 export function assessRisk(i: ClinicalInput): RiskResult {
-  const result: RiskResult = { category: null, original: null, reasons: [], notices: [], scoreEligible: false, model: scoreModel(i.age), error: null, manual: false };
+  const result: RiskResult = { category: null, original: null, reasons: [], notices: [], scoreEligible: false, model: scoreModel(i.age), score: null, error: null, manual: false };
   if (i.age === null) return { ...result, error: 'Introduce la edad para empezar.' };
   if (!Number.isInteger(i.age) || i.age < 18 || i.age > 110) return { ...result, error: 'Ámbito: adultos de 18 a 110 años. Revisa la edad.' };
   const candidates: Array<{ category: RiskCategory; reason: string }> = [];
@@ -48,14 +57,28 @@ export function assessRisk(i: ClinicalInput): RiskResult {
   }
   const hasCondition = i.secondary || i.imaging || i.ckd || i.diabetes !== 'no' || i.familial !== 'no' || i.severeRiskFactor || (i.baseline !== null && i.baseline >= 190);
   result.scoreEligible = !hasCondition && result.model !== null;
-  if (result.scoreEligible && i.score !== null) {
+  if (result.scoreEligible && result.model && i.scoreMode === 'calc') {
+    const sbpValid = inLimits(i.sbp, SCORE2_LIMITS.sbp), tcValid = inLimits(i.totalChol, SCORE2_LIMITS.totalChol);
+    const lipidsValid = tcValid && inLimits(i.hdl, SCORE2_LIMITS.hdl) && i.hdl! < i.totalChol!;
+    if (missingScoreInputs(i).length === 0) {
+      if (!sbpValid || !lipidsValid) result.notices.push('SCORE2 sin calcular: revisa PA sistólica, colesterol total y HDL-c (el HDL-c debe ser menor que el colesterol total).');
+      else if (i.onTreatment && !i.scorePretreatment) result.notices.push('No calcules SCORE2 con lípidos bajo tratamiento. Usa colesterol total y HDL-c previos al tratamiento y márcalo.');
+      else {
+        result.score = calculateScore2({ model: result.model, region: i.region, sex: i.sex!, age: i.age, smoker: i.smoker!, sbp: i.sbp!, totalChol: i.totalChol!, hdl: i.hdl! });
+        add(classifyScore(result.score), `${result.model} calculado: ${format(result.score)} % (región ${REGION_LABEL[i.region]})${i.onTreatment ? ', con lípidos previos al tratamiento' : ''}.`);
+      }
+    }
+    if (sbpValid && i.sbp! >= 180) add('high', 'PA sistólica ≥180 mmHg: factor aislado muy elevado (tabla 3).');
+    if (tcValid && i.totalChol! > 310) add('high', 'Colesterol total >310 mg/dL: factor aislado muy elevado (tabla 3).');
+  }
+  if (result.scoreEligible && i.scoreMode === 'manual' && i.score !== null) {
     if (!i.scoreConfirmed) result.notices.push('Confirma que el porcentaje procede de la herramienta oficial y de la región seleccionada.');
     else if (i.onTreatment && !i.scorePretreatment) result.notices.push('No uses SCORE2 con lípidos bajo tratamiento. Solo se admite un resultado histórico documentado previo al tratamiento.');
     else if (!Number.isFinite(i.score) || i.score < 0 || i.score > 100) result.notices.push('SCORE2 debe estar entre 0 y 100 %.');
-    else add(classifyScore(i.score), `${result.model} oficial introducido: ${i.score} %${i.onTreatment ? ' (histórico previo al tratamiento)' : ''}.`);
+    else { result.score = i.score; add(classifyScore(i.score), `${result.model} oficial introducido: ${i.score} %${i.onTreatment ? ' (histórico previo al tratamiento)' : ''}.`); }
   }
   if (!hasCondition && !result.model) result.notices.push('SCORE2/SCORE2-OP se aplican de 40 a 89 años. Fuera de ese intervalo, valoración clínica individual.');
-  if (hasCondition && i.score !== null) result.notices.push('El SCORE2 introducido se ignora por existir una condición que exige otra vía de clasificación.');
+  if (hasCondition && i.scoreMode === 'manual' && i.score !== null) result.notices.push('El SCORE2 introducido se ignora por existir una condición que exige otra vía de clasificación.');
   candidates.sort((a, b) => RANK[b.category] - RANK[a.category]);
   result.category = candidates[0]?.category ?? null;
   result.reasons = candidates.map(c => c.reason);

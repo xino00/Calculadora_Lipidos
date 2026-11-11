@@ -1,12 +1,14 @@
 import { describe, expect, it } from 'vitest';
-import { assessRisk, classifyScore, scoreModel } from '../clinical/risk';
+import { RANK, assessRisk, classifyScore, missingScoreInputs, scoreModel } from '../clinical/risk';
+import { MG_PER_MMOL, calculateScore2, uncalibratedScore2 } from '../clinical/score2';
 import { EMPTY, type ClinicalInput, type RiskCategory } from '../clinical/types';
 import { calculateTarget } from '../clinical/targets';
 import { treatmentThreshold } from '../clinical/thresholds';
 import { interpretLpa } from '../clinical/lpa';
 import { REGIMENS, simulateRegimen, treatmentPlan } from '../clinical/medications';
 import { parseNumber } from '../clinical/format';
-const patient = (overrides: Partial<ClinicalInput> = {}): ClinicalInput => ({ ...EMPTY, age: 55, ...overrides });
+const patient = (overrides: Partial<ClinicalInput> = {}): ClinicalInput => ({ ...EMPTY, age: 55, scoreMode: 'manual', ...overrides });
+const calc = (overrides: Partial<ClinicalInput> = {}): ClinicalInput => ({ ...EMPTY, age: 50, scoreMode: 'calc', sex: 'male', smoker: true, sbp: 140, totalChol: 5.5 * MG_PER_MMOL, hdl: 1.3 * MG_PER_MMOL, ...overrides });
 
 describe('SCORE2: límites ESC/EAS 2025, tabla 3', () => {
   it.each([[0, 'low'], [1.999, 'low'], [2, 'moderate'], [9.999, 'moderate'], [10, 'high'], [19.999, 'high'], [20, 'very-high'], [100, 'very-high']] as const)('%s %% → %s', (score, expected) => expect(classifyScore(score)).toBe(expected));
@@ -22,6 +24,65 @@ describe('SCORE2: límites ESC/EAS 2025, tabla 3', () => {
     expect(assessRisk({ ...p, scorePretreatment: true }).category).toBe('high');
   });
   it.each([null, 17, 111, 35.5, NaN])('no clasifica con edad no válida %s', age => expect(assessRisk(patient({ age, secondary: true })).category).toBeNull());
+});
+
+describe('SCORE2/SCORE2-OP calculados en la aplicación', () => {
+  // Worked examples of the original supplements: ehab309 methods table 4 and ehab312 methods table 3.
+  it.each([
+    ['male', 'low', 6.3], ['male', 'moderate', 8.1], ['male', 'high', 8.8], ['male', 'very-high', 15.1],
+    ['female', 'low', 4.3], ['female', 'moderate', 5.2], ['female', 'high', 7.1], ['female', 'very-high', 14.1],
+  ] as const)('ejemplo SCORE2 del suplemento (50 años, fumador, PAS 140, CT 6,3, HDL 1,4): %s, región %s → %s %%', (sex, region, expected) =>
+    expect(calculateScore2({ model: 'SCORE2', region, sex, age: 50, smoker: true, sbp: 140, totalChol: 6.3 * MG_PER_MMOL, hdl: 1.4 * MG_PER_MMOL })).toBe(expected));
+  it('riesgo sin calibrar de los ejemplos del suplemento', () => {
+    const score2 = { model: 'SCORE2', age: 50, smoker: true, sbp: 140, totalChol: 6.3 * MG_PER_MMOL, hdl: 1.4 * MG_PER_MMOL } as const;
+    expect(uncalibratedScore2({ ...score2, sex: 'male' })).toBeCloseTo(0.0541, 4); expect(uncalibratedScore2({ ...score2, sex: 'female' })).toBeCloseTo(0.0332, 4);
+    const op = { model: 'SCORE2-OP', age: 75, smoker: true, sbp: 140, totalChol: 5.5 * MG_PER_MMOL, hdl: 1.3 * MG_PER_MMOL } as const;
+    expect(uncalibratedScore2({ ...op, sex: 'female' })).toBeCloseTo(0.2442, 4); expect(uncalibratedScore2({ ...op, sex: 'male' })).toBeCloseTo(0.2966, 4);
+  });
+  // Reference: MDCalc SCORE2 (calc 10499) and SCORE2-OP (calc 10503), consulted 21/10/2026 with lipids in mmol/L.
+  it.each([
+    ['male', 50, true, 140, 5.5, 1.3, 'low', 5.9], ['female', 45, false, 120, 6.0, 1.6, 'low', 1.0], ['male', 65, false, 160, 6.5, 1.0, 'low', 10.8],
+    ['female', 62, true, 150, 7.0, 1.2, 'low', 9.2], ['male', 40, true, 130, 5.0, 1.1, 'very-high', 8.0], ['female', 55, false, 135, 6.2, 1.4, 'moderate', 3.2],
+    ['male', 58, false, 125, 4.8, 1.5, 'high', 4.7], ['female', 69, true, 170, 5.8, 1.0, 'high', 31.8], ['male', 69, false, 110, 4.0, 2.0, 'moderate', 6.8],
+    ['female', 40, true, 178, 7.5, 0.9, 'very-high', 27.0],
+    ['male', 75, false, 150, 5.5, 1.3, 'low', 14.6], ['female', 80, true, 140, 6.0, 1.5, 'low', 19.4], ['male', 72, true, 165, 6.5, 1.1, 'moderate', 32.2],
+    ['female', 85, false, 130, 4.5, 1.8, 'very-high', 50.5], ['male', 89, false, 120, 5.0, 1.2, 'high', 43.3], ['female', 70, false, 160, 7.0, 1.0, 'high', 20.6],
+    ['male', 70, true, 178, 6.0, 0.9, 'very-high', 48.9], ['female', 78, true, 125, 5.2, 1.6, 'moderate', 19.2],
+  ] as const)('%s, %s años, fumador %s, PAS %s, CT %s, HDL %s mmol/L, región %s → %s %%', (sex, age, smoker, sbp, tc, hdl, region, expected) =>
+    expect(calculateScore2({ model: age < 70 ? 'SCORE2' : 'SCORE2-OP', region, sex, age, smoker, sbp, totalChol: tc * MG_PER_MMOL, hdl: hdl * MG_PER_MMOL })).toBe(expected));
+  it('reproduce el ejemplo publicado por U-Prevent (mujer, 55 años, región baja: 3 %)', () =>
+    expect(calculateScore2({ model: 'SCORE2', region: 'low', sex: 'female', age: 55, smoker: false, sbp: 140, totalChol: 7 * MG_PER_MMOL, hdl: 1.5 * MG_PER_MMOL })).toBe(3));
+  it('clasifica el porcentaje calculado con los cortes de tabla 3', () => { const r = assessRisk(calc()); expect(r.score).toBe(5.9); expect(r.category).toBe('moderate'); });
+  it('cambia de SCORE2 a SCORE2-OP entre 69 y 70 años', () => {
+    expect(assessRisk(calc({ age: 69 })).reasons[0]).toMatch(/^SCORE2 calculado/); expect(assessRisk(calc({ age: 70 })).reasons[0]).toMatch(/^SCORE2-OP calculado/);
+  });
+  it.each([39, 90])('no calcula a los %s años', age => expect(assessRisk(calc({ age })).score).toBeNull());
+  it.each(['sex', 'smoker', 'sbp', 'totalChol', 'hdl'] as const)('sin %s no calcula ni clasifica', key => {
+    const r = assessRisk(calc({ [key]: null })); expect(r.score).toBeNull(); expect(r.category).toBeNull(); expect(missingScoreInputs(calc({ [key]: null }))).toHaveLength(1);
+  });
+  it('rechaza HDL-c ≥ colesterol total y valores fuera de rango', () => {
+    expect(assessRisk(calc({ totalChol: 150, hdl: 150 })).score).toBeNull(); expect(assessRisk(calc({ sbp: 260 })).score).toBeNull();
+    expect(() => calculateScore2({ model: 'SCORE2', region: 'low', sex: 'male', age: 50, smoker: false, sbp: 140, totalChol: 150, hdl: 160 })).toThrow();
+  });
+  it('bajo tratamiento solo calcula con lípidos previos', () => {
+    const p = calc({ onTreatment: true }); expect(assessRisk(p).score).toBeNull(); expect(assessRisk(p).category).toBeNull();
+    expect(assessRisk({ ...p, scorePretreatment: true }).score).toBe(5.9);
+  });
+  it('la región recalibra el resultado', () => {
+    const scores = (['low', 'moderate', 'high', 'very-high'] as const).map(region => assessRisk(calc({ region })).score!);
+    expect(scores).toEqual([...scores].sort((a, b) => a - b)); expect(scores[0]).toBeLessThan(scores[3]);
+  });
+  it('PAS ≥180 o colesterol total >310 mg/dL elevan al menos a riesgo alto', () => {
+    const base = { age: 40, smoker: false };
+    expect(RANK[assessRisk(calc({ ...base, sbp: 179 })).category!]).toBeLessThan(RANK.high); expect(assessRisk(calc({ ...base, sbp: 180 })).category).toBe('high');
+    expect(RANK[assessRisk(calc({ ...base, totalChol: 310, hdl: 50 })).category!]).toBeLessThan(RANK.high); expect(assessRisk(calc({ ...base, totalChol: 310.1, hdl: 50 })).category).toBe('high');
+    expect(assessRisk(calc({ sex: null, sbp: 185 })).category).toBe('high');
+  });
+  it('en diabetes no usa el cálculo ni los datos ocultos', () => {
+    const r = assessRisk(calc({ age: 45, sbp: 185, diabetes: 'type2', diabetesDuration: 5, diabetesRiskFactors: 0 }));
+    expect(r.scoreEligible).toBe(false); expect(r.score).toBeNull(); expect(r.category).toBe('moderate');
+  });
+  it('en modo cálculo ignora un porcentaje manual', () => expect(assessRisk(calc({ sex: null, score: 25, scoreConfirmed: true })).category).toBeNull());
 });
 
 describe('Condiciones clínicas y exclusión de SCORE2', () => {

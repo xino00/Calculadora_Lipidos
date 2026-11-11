@@ -1,6 +1,6 @@
 import { useMemo, useRef, useState } from 'react';
 import { EMPTY, RISK_LABEL, REGION_LABEL, type ClinicalInput } from './clinical/types';
-import { assessRisk } from './clinical/risk';
+import { SCORE2_LIMITS, assessRisk } from './clinical/risk';
 import { calculateTarget } from './clinical/targets';
 import { format } from './clinical/format';
 import { interpretLpa } from './clinical/lpa';
@@ -28,10 +28,11 @@ export default function App() {
   const [copyStatus, setCopyStatus] = useState('');
   const dialog = useRef<HTMLDialogElement>(null);
   const update = (patch: Partial<ClinicalInput>) => {
-    const riskChanged = ['age','secondary','diabetes','diabetesDuration','diabetesRiskFactors','organDamage','earlyType1','ckd','egfr','familial','imaging','severeRiskFactor','baseline','score','region'].some(k => k in patch);
+    const riskChanged = ['age','secondary','diabetes','diabetesDuration','diabetesRiskFactors','organDamage','earlyType1','ckd','egfr','familial','imaging','severeRiskFactor','baseline','score','region','scoreMode','sex','smoker','sbp','totalChol','hdl'].some(k => k in patch);
     setData(old => ({ ...old, ...(riskChanged ? { reclassified: '' as const, reclassificationReason: '' } : {}), ...patch }));
     setCopyStatus('');
   };
+  const assessed = assessRisk(data);
   const errors = useMemo(() => {
     const list: string[] = [];
     const check = (label: string, value: number | null, min: number, max: number, integer = false) => {
@@ -42,9 +43,12 @@ export default function App() {
     if (data.onTreatment) check('el LDL actual', data.current, 0.1, 1000);
     if (data.ckd) check('el filtrado glomerular', data.egfr, 0.1, 200);
     if (data.diabetes !== 'no') { check('la duración de diabetes', data.diabetesDuration, 0, data.age || 110); check('los factores mayores', data.diabetesRiskFactors, 0, 5, true); }
+    if (assessed.scoreEligible && data.scoreMode === 'calc') {
+      check('el colesterol total', data.totalChol, ...SCORE2_LIMITS.totalChol); check('el HDL-c', data.hdl, ...SCORE2_LIMITS.hdl); check('la PA sistólica', data.sbp, ...SCORE2_LIMITS.sbp, true);
+      if (data.hdl !== null && data.totalChol !== null && data.hdl >= data.totalChol) list.push('Revisa el HDL-c: debe ser menor que el colesterol total.');
+    }
     return list;
-  }, [data]);
-  const assessed = assessRisk(data);
+  }, [data, assessed.scoreEligible]);
   const risk = errors.length ? { ...assessed, category: null, error: 'Corrige los valores no válidos antes de interpretar resultados.' } : assessed;
   const target = risk.category ? calculateTarget(risk.category, data.baseline, data.onTreatment ? data.current : data.baseline, data.secondary && data.recurrentOrPolyvascular && data.consider40) : null;
   const lpa = interpretLpa(data.lpa, data.lpaUnit);
@@ -54,7 +58,7 @@ export default function App() {
     `Edad: ${format(data.age, 0)} años. Prevención ${data.secondary ? 'secundaria' : 'primaria'}.`,
     `Riesgo: ${risk.category ? RISK_LABEL[risk.category] : 'sin determinar'}${risk.manual ? ' (indicado por el profesional)' : ''}.`,
     ...risk.reasons,
-    risk.scoreEligible && data.scoreConfirmed && (!data.onTreatment || data.scorePretreatment) ? `${risk.model}: ${format(data.score)} %. Región: ${REGION_LABEL[data.region]}. Resultado externo${data.onTreatment ? ', previo al tratamiento' : ''}.` : '',
+    risk.score !== null ? `${risk.model}: ${format(risk.score)} %. Región: ${REGION_LABEL[data.region]}. ${data.scoreMode === 'calc' ? `Calculado en la aplicación: ${data.sex === 'male' ? 'varón' : 'mujer'}, tabaquismo actual ${data.smoker ? 'sí' : 'no'}, PAS ${format(data.sbp, 0)} mmHg, CT ${format(data.totalChol)} mg/dL, HDL-c ${format(data.hdl)} mg/dL${data.onTreatment ? ' (lípidos previos al tratamiento)' : ''}.` : `Resultado externo${data.onTreatment ? ', previo al tratamiento' : ''}.`}` : '',
     `LDL basal: ${format(data.baseline)} mg/dL. LDL actual: ${format(data.onTreatment ? data.current : data.baseline)} mg/dL.`,
     target ? `Objetivo: <${target.absoluteTarget} mg/dL${target.needs50 ? ' y ≥50 % de reducción desde el basal' : ''}${target.absoluteTarget === 40 ? ' (opcional, IIb)' : ''}.` : '',
     target ? `Estado: ${target.overall === 'met' ? 'objetivo completo alcanzado' : target.overall === 'not-met' ? 'objetivo no alcanzado' : 'objetivo sin verificar'}. ${target.baselineUnknown ? 'Basal desconocido: el criterio ≥50 % no puede comprobarse.' : ''}` : '',
@@ -79,7 +83,7 @@ export default function App() {
       <main id="main"><div className="page-heading"><div><div className="eyebrow">PREVENCIÓN CARDIOVASCULAR <span>/</span> ADULTOS</div><h1>Calculadora de lípidos<span>.</span></h1><p>Del riesgo al objetivo. Del objetivo al tratamiento.</p></div><button className="example-button" onClick={loadExample}>{example ? 'Recargar ejemplo' : 'Explorar un ejemplo'}<Icon name="arrow" size={16}/></button></div>
       <div className="scope-banner"><Icon name="info" size={16}/><span>Basada en ESC/EAS 2025. <strong>Prototipo pendiente de validación clínica externa.</strong> No es una herramienta oficial de ESC.</span>{example && <b className="example-badge">CASO FICTICIO</b>}</div>
       <nav className="mobile-tabs" aria-label="Módulos">{TABS.map((t, n) => <button key={t.id} className={tab === t.id ? 'active' : ''} onClick={() => navigate(t.id)}><span>0{n + 1}</span>{['Riesgo','LDL-c','Lp(a)','Tratamiento'][n]}</button>)}</nav>
-      {tab === 'sources' ? <section className="card sources-page"><div className="section-heading"><div className="icon-box"><Icon name="book"/></div><div><h2>Fuentes y método</h2><p>Reglas visibles y decisiones trazables.</p></div></div><Notice>Marco clínico fijo: actualización ESC/EAS 2025. Fuentes revisadas el {REVIEWED}. No integra automáticamente nuevas guías ni constituye validación clínica o certificación.</Notice><div className="references">{REFERENCES.map((r, n) => <a href={r.url} target="_blank" rel="noopener noreferrer" key={r.id}><span>{String(n + 1).padStart(2, '0')}</span><div><h3>{r.title}</h3><p>{r.detail}</p></div><Icon name="external" size={17}/></a>)}</div><h3>Decisiones de implementación</h3><ul className="method-list"><li>SCORE2 externo, sin fórmula aproximada. Región seleccionada como contexto; no recalibra el resultado.</li><li>LDL basal ≥190 mg/dL: se adopta el límite inclusivo de la nota a de tabla 4, aunque la tabla 3 imprime &gt;190.</li><li>Diabetes: criterios de tabla 3. Los casos no cubiertos quedan pendientes; no se mezclan con umbrales SCORE2-Diabetes.</li><li>FG para ERC confirmada: &lt;30 muy alto; 30–&lt;60 alto. FG ≥60 no determina una categoría en esta tabla.</li><li>Lp(a): umbral &gt;50 mg/dL o &gt;105 nmol/L de rec. 4/cuadro 1. El texto también usa ≥105: se señala el valor exacto como frontera clínica.</li><li>LDL: comparación estricta «&lt;» para el objetivo absoluto y «≤50 % del basal» para la reducción ≥50 %. La aritmética no se redondea antes de comparar.</li><li>Estimaciones farmacológicas: promedios de las combinaciones de figura 2. No se suman porcentajes ni se reconstruye un basal desconocido.</li><li>No cubre prescripción individual, interacciones completas, hipertrigliceridemia, pediatría ni criterios de financiación. No integra de forma general guías de ERC posteriores a 2025.</li></ul><h3>Privacidad</h3><p>Sin backend, analítica, cookies de la aplicación, almacenamiento local ni datos identificativos. Todo el cálculo ocurre en el navegador. Los campos se borran al recargar o crear un nuevo caso. El resumen solo sale de la aplicación si lo copias expresamente.</p></section> : <div className="content-grid"><div className="form-column" key={caseId}>
+      {tab === 'sources' ? <section className="card sources-page"><div className="section-heading"><div className="icon-box"><Icon name="book"/></div><div><h2>Fuentes y método</h2><p>Reglas visibles y decisiones trazables.</p></div></div><Notice>Marco clínico fijo: actualización ESC/EAS 2025. Fuentes revisadas el {REVIEWED}. No integra automáticamente nuevas guías ni constituye validación clínica o certificación.</Notice><div className="references">{REFERENCES.map((r, n) => <a href={r.url} target="_blank" rel="noopener noreferrer" key={r.id}><span>{String(n + 1).padStart(2, '0')}</span><div><h3>{r.title}</h3><p>{r.detail}</p></div><Icon name="external" size={17}/></a>)}</div><h3>Decisiones de implementación</h3><ul className="method-list"><li>SCORE2/SCORE2-OP calculados con las ecuaciones publicadas (coeficientes por sexo, interacciones con la edad y recalibración por región). Colesterol en mg/dL convertido a mmol/L con 38,67. Resultado redondeado a un decimal y clasificado con ese valor. Diabetes no entra en el cálculo: en DM se aplica la tabla 3.</li><li>Entrada manual alternativa: resultado de HeartScore u otro registro, con confirmación de origen; ahí la región es solo contexto.</li><li>LDL basal ≥190 mg/dL: se adopta el límite inclusivo de la nota a de tabla 4, aunque la tabla 3 imprime &gt;190.</li><li>Diabetes: criterios de tabla 3. Los casos no cubiertos quedan pendientes; no se mezclan con umbrales SCORE2-Diabetes.</li><li>FG para ERC confirmada: &lt;30 muy alto; 30–&lt;60 alto. FG ≥60 no determina una categoría en esta tabla.</li><li>Lp(a): umbral &gt;50 mg/dL o &gt;105 nmol/L de rec. 4/cuadro 1. El texto también usa ≥105: se señala el valor exacto como frontera clínica.</li><li>LDL: comparación estricta «&lt;» para el objetivo absoluto y «≤50 % del basal» para la reducción ≥50 %. La aritmética no se redondea antes de comparar.</li><li>Estimaciones farmacológicas: promedios de las combinaciones de figura 2. No se suman porcentajes ni se reconstruye un basal desconocido.</li><li>No cubre prescripción individual, interacciones completas, hipertrigliceridemia, pediatría ni criterios de financiación. No integra de forma general guías de ERC posteriores a 2025.</li></ul><h3>Privacidad</h3><p>Sin backend, analítica, cookies de la aplicación, almacenamiento local ni datos identificativos. Todo el cálculo ocurre en el navegador. Los campos se borran al recargar o crear un nuevo caso. El resumen solo sale de la aplicación si lo copias expresamente.</p></section> : <div className="content-grid"><div className="form-column" key={caseId}>
         {errors.length > 0 && <Notice tone="warning"><strong>Revisa los datos</strong><ul>{errors.map(e => <li key={e}>{e}</li>)}</ul></Notice>}
         {risk.error && data.age !== null && <Notice tone="warning">{risk.error}</Notice>}
         {tab === 'risk' && <RiskAssessment data={data} update={update} risk={risk}/>}

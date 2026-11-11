@@ -1,9 +1,14 @@
 import type { ClinicalInput, RiskCategory, RiskResult } from '../clinical/types';
 import { REGION_LABEL, RISK_LABEL } from '../clinical/types';
-import { RANK } from '../clinical/risk';
-import { Check, Icon, Notice, NumberField, Source } from './ui';
+import { RANK, SCORE2_LIMITS, classifyScore, missingScoreInputs } from '../clinical/risk';
+import { format } from '../clinical/format';
+import { Check, Icon, Notice, NumberField, Segmented, Source } from './ui';
 export type InputProps = { data: ClinicalInput; update: (patch: Partial<ClinicalInput>) => void };
 export function RiskAssessment({ data: d, update, risk }: InputProps & { risk: RiskResult }) {
+  const calc = d.scoreMode === 'calc';
+  const missing = missingScoreInputs(d);
+  const band = risk.score !== null ? classifyScore(risk.score) : null;
+  const region = (hint: string) => <div className="field"><label htmlFor="region">Región de riesgo</label><select id="region" value={d.region} onChange={e => update({ region: e.target.value as ClinicalInput['region'], scoreConfirmed: false })}>{Object.entries(REGION_LABEL).map(([key, text]) => <option value={key} key={key}>{text}</option>)}</select><small>{hint}</small></div>;
   return <>
     <section className="card"><div className="section-heading"><span className="step-number">01</span><div><h2>Contexto clínico</h2><p>Empieza por lo que determina el riesgo.</p></div></div>
       <div className="field-grid"><NumberField label="Edad" value={d.age} onChange={age => update({ age, scoreConfirmed: false })} min={18} max={110} integer unit="años" hint="Edad utilizada en la valoración." />
@@ -21,14 +26,21 @@ export function RiskAssessment({ data: d, update, risk }: InputProps & { risk: R
       {d.secondary && <div className="inset"><Check checked={d.acuteCoronary} onChange={acuteCoronary => update({ acuteCoronary })} label="Síndrome coronario agudo actual" detail="Activa la orientación de intensificación durante el ingreso."/><Check checked={d.recurrentOrPolyvascular} onChange={recurrentOrPolyvascular => update({ recurrentOrPolyvascular, consider40: false })} label="Eventos recurrentes con estatina máxima o enfermedad polivascular" detail="Permite valorar un objetivo opcional <40 mg/dL; clase IIb, figura 1."/></div>}
       <Source>ESC/EAS 2025 · tabla 3</Source>
     </section>
-    <section className="card"><div className="section-heading"><div className="icon-box"><Icon name="shield"/></div><div><h2>Riesgo a 10 años</h2><p>Resultado de la calculadora oficial.</p></div><span className="pill neutral">Entrada manual</span></div>
-      {risk.scoreEligible ? <><div className="field-grid"><NumberField label={`${risk.model} oficial`} value={d.score} onChange={score => update({ score })} unit="%" max={100} hint="Eventos cardiovasculares fatales y no fatales."/><div className="field"><label htmlFor="region">Región de la calculadora</label><select id="region" value={d.region} onChange={e => update({ region: e.target.value as ClinicalInput['region'], scoreConfirmed: false })}>{Object.entries(REGION_LABEL).map(([key, text]) => <option value={key} key={key}>{text}</option>)}</select><small>España pertenece a la región de riesgo bajo.</small></div></div>
+    <section className="card"><div className="section-heading"><div className="icon-box"><Icon name="shield"/></div><div><h2>Riesgo a 10 años</h2><p>{calc ? 'SCORE2 calculado con los datos del paciente.' : 'Resultado de la calculadora oficial.'}</p></div>{risk.model && <span className="pill neutral">{risk.model}</span>}</div>
+      {risk.scoreEligible ? <><div className="segmented mode" role="group" aria-label="Origen del SCORE2"><button type="button" className={calc ? 'selected' : ''} aria-pressed={calc} onClick={() => update({ scoreMode: 'calc' })}>Calcular aquí</button><button type="button" className={!calc ? 'selected' : ''} aria-pressed={!calc} onClick={() => update({ scoreMode: 'manual' })}>Entrada manual</button></div>
+      {calc ? <><div className="field-grid"><Segmented label="Sexo" value={d.sex} options={[['male', 'Varón'], ['female', 'Mujer']]} onChange={sex => update({ sex })}/><Segmented label="Fumador actual" value={d.smoker} options={[[false, 'No'], [true, 'Sí']]} onChange={smoker => update({ smoker })}/>
+        <NumberField label="Colesterol total" value={d.totalChol} onChange={totalChol => update({ totalChol })} unit="mg/dL" min={SCORE2_LIMITS.totalChol[0]} max={SCORE2_LIMITS.totalChol[1]}/><NumberField label="HDL-c" value={d.hdl} onChange={hdl => update({ hdl })} unit="mg/dL" min={SCORE2_LIMITS.hdl[0]} max={SCORE2_LIMITS.hdl[1]}/>
+        <NumberField label="PA sistólica" value={d.sbp} onChange={sbp => update({ sbp })} unit="mmHg" min={SCORE2_LIMITS.sbp[0]} max={SCORE2_LIMITS.sbp[1]} integer/>{region('Recalibra el cálculo. España pertenece a la región de riesgo bajo.')}</div>
+      {d.onTreatment && <Check label="Colesterol total y HDL-c previos al tratamiento" detail="SCORE2 no se calcula con lípidos bajo tratamiento hipolipemiante." checked={d.scorePretreatment} onChange={scorePretreatment => update({ scorePretreatment })}/>}
+      <div className={`score-output ${band ?? ''}`} aria-live="polite"><span>{risk.model} · región {REGION_LABEL[d.region]}</span><strong>{risk.score !== null ? `${format(risk.score)} %` : '—'}</strong>{band && <b>{RISK_LABEL[band]}</b>}<small>{missing.length ? `Falta: ${missing.join(', ')}.` : risk.score !== null ? 'Eventos cardiovasculares fatales y no fatales a 10 años.' : 'Sin calcular: revisa los avisos de esta valoración.'}</small></div>
+      <a className="official-link" href="https://www.heartscore.org/" target="_blank" rel="noopener noreferrer">Contrastar con HeartScore oficial <Icon name="external" size={16}/></a>
+      </> : <><div className="field-grid"><NumberField label={`${risk.model} oficial`} value={d.score} onChange={score => update({ score })} unit="%" max={100} hint="Eventos cardiovasculares fatales y no fatales."/>{region('España pertenece a la región de riesgo bajo.')}</div>
       <a className="official-link" href="https://www.heartscore.org/" target="_blank" rel="noopener noreferrer">Abrir HeartScore oficial <Icon name="external" size={16}/></a>
       <Check label="Resultado oficial y región comprobados" checked={d.scoreConfirmed} onChange={scoreConfirmed => update({ scoreConfirmed })}/>
       {d.onTreatment && <Check label="Resultado histórico previo al tratamiento" detail="No se recalcula el riesgo con lípidos bajo tratamiento." checked={d.scorePretreatment} onChange={scorePretreatment => update({ scorePretreatment })}/>}
-      </> : <Notice>{d.age === null ? 'Al introducir la edad y el contexto clínico se mostrará la vía de evaluación adecuada.' : 'Con este contexto no se utiliza SCORE2 general. La categoría procede de las condiciones clínicas o requiere una valoración individual.'}</Notice>}
-      <div className="risk-scale">{(['low', 'moderate', 'high', 'very-high'] as const).map((k, n) => <div key={k} className={k}><span>{RISK_LABEL[k]}</span><strong>{['<2 %', '2–<10 %', '10–<20 %', '≥20 %'][n]}</strong></div>)}</div>
-      <p className="caption">Cortes de la tabla 3 ESC/EAS 2025. La edad selecciona SCORE2 (40–69) o SCORE2-OP (70–89); estos cortes no son los de prevención ESC 2021.</p>
+      </>}</> : <Notice>{d.age === null ? 'Al introducir la edad y el contexto clínico se mostrará la vía de evaluación adecuada.' : 'Con este contexto no se utiliza SCORE2 general. La categoría procede de las condiciones clínicas o requiere una valoración individual.'}</Notice>}
+      <div className="risk-scale">{(['low', 'moderate', 'high', 'very-high'] as const).map((k, n) => <div key={k} className={`${k}${band === k ? ' active' : ''}`}><span>{RISK_LABEL[k]}</span><strong>{['<2 %', '2–<10 %', '10–<20 %', '≥20 %'][n]}</strong></div>)}</div>
+      <p className="caption">Cortes de la tabla 3 ESC/EAS 2025. La edad selecciona SCORE2 (40–69) o SCORE2-OP (70–89); estos cortes no son los de prevención ESC 2021.{calc && risk.scoreEligible ? ' Cálculo con las ecuaciones publicadas de SCORE2 y SCORE2-OP, recalibradas por región; el porcentaje se redondea a un decimal antes de clasificar.' : ''}</p>
     </section>
     <section className="card compact"><details><summary>Modificadores y reclasificación clínica <span>Opcional</span></summary><div className="details-body"><Check checked={d.modifier} onChange={modifier => update({ modifier })} label="Otros modificadores presentes" detail="Antecedentes familiares prematuros, placa subclínica, enfermedad inflamatoria, entre otros (cuadro 1)."/>
       <p className="caption">Lp(a) elevada y otros modificadores requieren juicio clínico. Esta aplicación nunca suma puntos ni eleva automáticamente la categoría por ellos.</p>

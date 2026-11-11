@@ -17,7 +17,7 @@ Ayuda a aplicar de forma ordenada y trazable las recomendaciones ESC/EAS 2025 du
 
 | Pregunta clínica | Qué hace la calculadora |
 | --- | --- |
-| ¿Cuál es el riesgo cardiovascular del paciente? | Lo clasifica en bajo, moderado, alto o muy alto a partir de las condiciones clínicas (enfermedad cardiovascular aterosclerótica, aterosclerosis en imagen, diabetes, ERC, hipercolesterolemia familiar, factores aislados muy elevados) o, si no las hay, del SCORE2/SCORE2-OP obtenido en la calculadora oficial. |
+| ¿Cuál es el riesgo cardiovascular del paciente? | Lo clasifica en bajo, moderado, alto o muy alto a partir de las condiciones clínicas (enfermedad cardiovascular aterosclerótica, aterosclerosis en imagen, diabetes, ERC, hipercolesterolemia familiar, factores aislados muy elevados) o, si no las hay, del SCORE2/SCORE2-OP, calculado en la propia aplicación o introducido desde la calculadora oficial. |
 | ¿Cuál es su objetivo de LDL-c y cuánto le falta? | Calcula el objetivo absoluto y, en riesgo alto o muy alto, el criterio de reducción ≥50 % desde el basal. Muestra el descenso adicional necesario en mg/dL y en porcentaje. |
 | ¿Cómo interpreto su Lp(a)? | La sitúa respecto a los umbrales de la guía, en mg/dL o nmol/L, sin convertir unidades ni reclasificar el riesgo automáticamente. |
 | ¿Cuándo tratar y con qué? | Indica si se recomienda o se debe considerar iniciar tratamiento, propone una ruta orientativa según tolerancia a estatinas, pauta actual y síndrome coronario agudo, y compara el LDL-c estimado con distintas combinaciones de fármacos. |
@@ -45,7 +45,7 @@ Al terminar genera un **resumen en texto** para revisar y copiar a la historia c
 
 Otras fuentes:
 
-- **SCORE2 / SCORE2-OP:** la calculadora no los calcula. Se introduce el resultado de la herramienta oficial [HeartScore](https://www.heartscore.org/); la región de riesgo baja (España) es la predeterminada.
+- **SCORE2 / SCORE2-OP:** se calculan con las ecuaciones publicadas por el [SCORE2 working group](https://doi.org/10.1093/eurheartj/ehab309) (40–69 años) y el [SCORE2-OP working group](https://doi.org/10.1093/eurheartj/ehab312) (70–89 años), con la recalibración de la región elegida (por defecto, riesgo bajo: España). También admite entrada manual del resultado de [HeartScore](https://www.heartscore.org/).
 - **Fichas técnicas de la AEMPS (CIMA)** de [ácido bempedoico (Nilemdo)](https://cima.aemps.es/cima/dochtml/ft/1201425002/FT_1201425002.html) y [atorvastatina](https://cima.aemps.es/cima/dochtml/ft/74072/FT_74072.html), para las notas de posología y precauciones.
 
 ### Objetivos de LDL-c que aplica
@@ -64,6 +64,7 @@ La calculadora trabaja en mg/dL. Si se desconoce el LDL-c basal, no da por cumpl
 - **Cortes de SCORE2:** usa los cortes fijos 2/10/20 % de la tabla 3 de 2025, no los umbrales por edad de la guía de prevención ESC 2021.
 - **LDL-c basal de 190 mg/dL:** se considera al menos riesgo alto (≥190, tabla 4), aunque la tabla 3 imprime >190.
 - **Lp(a):** >50 mg/dL o >105 nmol/L se muestra como modificador de riesgo; el valor exacto de 105 nmol/L aparece como «en el umbral».
+- **SCORE2 calculado:** colesterol total y HDL-c en mg/dL se convierten a mmol/L con el factor 38,67; el riesgo se redondea a un decimal y se clasifica con ese valor. Con PA sistólica ≥180 mmHg o colesterol total >310 mg/dL, la categoría es al menos alta (tabla 3).
 - **Diabetes:** aplica los criterios de la tabla 3; no implementa SCORE2-Diabetes y pide valoración específica en los casos que la tabla no cubre.
 - **Simulador de fármacos:** aplica la reducción media de cada combinación (figura 2) al LDL-c basal sin tratamiento. No suma porcentajes de fármacos individuales ni los aplica sobre el LDL-c ya tratado.
 
@@ -71,7 +72,7 @@ El detalle de cada regla, con su tabla o figura de origen, está en [docs/clinic
 
 ## Cómo se usa
 
-1. **Riesgo:** edad, prevención primaria o secundaria y condiciones clínicas. Si procede, el SCORE2/SCORE2-OP obtenido en HeartScore.
+1. **Riesgo:** edad, prevención primaria o secundaria y condiciones clínicas. Si procede, sexo, tabaquismo, colesterol total, HDL-c y PA sistólica para calcular SCORE2/SCORE2-OP, o el resultado de HeartScore en «Entrada manual».
 2. **Objetivos LDL-c:** LDL-c basal sin tratamiento y, si ya está tratado, LDL-c actual.
 3. **Lp(a):** valor y unidad del laboratorio (opcional).
 4. **Tratamiento:** tolerancia a estatinas, pauta actual y situaciones especiales. Permite explorar escenarios de combinación.
@@ -81,7 +82,7 @@ El detalle de cada regla, con su tabla o figura de origen, está en [docs/clinic
 
 ## Qué no hace
 
-- No calcula SCORE2, SCORE2-OP ni SCORE2-Diabetes, ni incluye sus coeficientes.
+- No calcula SCORE2-Diabetes ni usa SCORE2 en personas con diabetes, ERC o hipercolesterolemia familiar.
 - No prescribe dosis individuales ni comprueba todas las contraindicaciones e interacciones.
 - No propone tratamiento farmacológico en embarazo o lactancia, hepatopatía activa o diálisis.
 - No cubre pediatría, hipertrigliceridemia, criterios de financiación del SNS ni la valoración completa de la ERC.
@@ -94,7 +95,7 @@ Todo se procesa en el navegador y se mantiene solo en memoria: sin servidor, sin
 
 ## Validación
 
-138 pruebas automatizadas con casos sintéticos comprueban los valores límite de cada regla: cortes de SCORE2, edades, filtrado glomerular, criterios de diabetes, LDL-c basal ≥190, reducción ≥50 %, umbrales de Lp(a), combinaciones de fármacos y situaciones especiales. Verifican que las reglas están implementadas como se describen; **no son una validación clínica**.
+181 pruebas automatizadas con casos sintéticos comprueban los valores límite de cada regla: cálculo de SCORE2/SCORE2-OP frente a los ejemplos de los artículos originales y calculadoras de referencia, cortes de SCORE2, edades, filtrado glomerular, criterios de diabetes, LDL-c basal ≥190, reducción ≥50 %, umbrales de Lp(a), combinaciones de fármacos y situaciones especiales. Verifican que las reglas están implementadas como se describen; **no son una validación clínica**.
 
 Antes de usarla en la práctica asistencial se necesita una revisión independiente con casos reales representativos, el contraste con las calculadoras oficiales y, si se integra en un centro, su aprobación institucional. Más detalle en [docs/validation.md](docs/validation.md).
 
@@ -141,7 +142,7 @@ El repositorio es público: no subir claves ni datos de pacientes al código, is
 
 ## Uso del contenido de las guías
 
-La calculadora contiene reglas y cálculos propios basados en las guías citadas, con enlaces a las fuentes. No distribuye PDFs, tablas o figuras originales, logos ni coeficientes de SCORE2. La guía y su material pertenecen a sus titulares; consultar sus condiciones de reutilización antes de una distribución institucional o comercial.
+La calculadora contiene reglas y cálculos propios basados en las guías citadas, con enlaces a las fuentes. Implementa las ecuaciones publicadas de SCORE2 y SCORE2-OP citando los artículos originales. No distribuye PDFs, tablas o figuras originales ni logos. La guía y su material pertenecen a sus titulares; consultar sus condiciones de reutilización antes de una distribución institucional o comercial.
 
 Revisión de fuentes: 21/10/2026.
 
