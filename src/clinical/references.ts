@@ -1,3 +1,4 @@
+import { DRUG_REFERENCES } from './drugs';
 export const REVIEWED = '21/10/2026';
 export const REFERENCES = [
   { id: 'esc2025', title: 'ESC/EAS 2025 · actualización de dislipidemias', detail: 'Tabla 3: riesgo; tabla 4 y recomendación 1: inicio; figuras 1–2: objetivos y estimaciones; recomendaciones 2–4: tratamiento, SCA y Lp(a).', url: 'https://doi.org/10.1093/eurheartj/ehaf190' },
@@ -7,7 +8,6 @@ export const REFERENCES = [
   { id: 'score2', title: 'SCORE2 · ecuaciones de riesgo a 10 años (40–69 años)', detail: 'SCORE2 working group. Eur Heart J 2021;42:2439–54. Coeficientes, supervivencia basal y recalibración por región (material suplementario).', url: 'https://doi.org/10.1093/eurheartj/ehab309' },
   { id: 'score2op', title: 'SCORE2-OP · personas de 70 años o más', detail: 'SCORE2-OP working group. Eur Heart J 2021;42:2455–67. Tabla 2 y material suplementario.', url: 'https://doi.org/10.1093/eurheartj/ehab312' },
   { id: 'heartscore', title: 'HeartScore · herramienta oficial', detail: 'Calculadora oficial de la ESC. Útil para contrastar el cálculo o para la entrada manual.', url: 'https://www.heartscore.org/' },
-  { id: 'nilemdo', title: 'AEMPS · ácido bempedoico', detail: 'Ficha técnica Nilemdo: posología, precauciones e interacciones.', url: 'https://cima.aemps.es/cima/dochtml/ft/1201425002/FT_1201425002.html' },
-  { id: 'atorva', title: 'AEMPS · atorvastatina', detail: 'Ficha técnica: ajuste de dosis, contraindicaciones e interacciones.', url: 'https://cima.aemps.es/cima/dochtml/ft/74072/FT_74072.html' },
+  ...DRUG_REFERENCES,
 ];
 export const ESC_URL = REFERENCES[0].url;

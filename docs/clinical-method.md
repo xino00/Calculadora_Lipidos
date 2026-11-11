@@ -46,6 +46,25 @@ Fuente principal inspeccionada: texto íntegro publicado, DOI [10.1093/eurheartj
 
 **Escenarios.** Valores de figura 2 para cada combinación; `LDL estimado = basal × (100−reducción)/100`. El orden de operaciones evita que 275 con un descenso del 80 % produzca un valor binario inferior a 55 y se interprete como cumplimiento del objetivo estricto. No se modelan dosis individuales, respuesta del paciente, abandono ni efecto incremental sobre una pauta actual. No hay una secuencia rígida que obligue a usar bempedoico antes de anti-PCSK9.
 
+## Catálogo farmacológico de referencia
+
+Revisión documental específica del 11/11/2026, con segunda pasada adversarial. No actualiza la fecha de revisión de las demás reglas. `src/clinical/drugs.ts` centraliza los textos utilizados en opciones y componentes del simulador.
+
+| Dato mostrado | Fuente original y ubicación |
+| --- | --- |
+| Alta intensidad: atorvastatina 40/80 mg y rosuvastatina 20/40 mg diarios. Moderada: atorvastatina 10/20, rosuvastatina 5/10 y simvastatina 20/40 mg diarios | [AHA/ACC 2018, tabla 3](https://pmc.ncbi.nlm.nih.gov/articles/PMC7403606/). Solo clasificación por dosis, sin importar criterios de inicio o metas de esa guía. |
+| Atorvastatina oral una vez al día | [CIMA Pharmakern, 4.2](https://cima.aemps.es/cima/dochtml/ft/74072/FT_74072.html) |
+| Rosuvastatina oral diaria; 40 mg requiere escalado tras respuesta insuficiente a 20 mg, hipercolesterolemia grave/alto riesgo y seguimiento; supervisión especializada recomendada; 40 mg contraindicados con aclaramiento de creatinina <60 mL/min | [CIMA Cinfa, 4.2–4.3](https://cima.aemps.es/cima/dochtml/ft/80213/FT_80213.html), contraste con [Liconsa, 4.2–4.3](https://cima.aemps.es/cima/dochtml/ft/80576/FT_80576.html). No equiparar FG estimado y aclaramiento de creatinina. |
+| Simvastatina oral en una toma nocturna | [CIMA Cinfa, 4.2](https://cima.aemps.es/cima/dochtml/ft/64415/FT_64415.html) |
+| Ezetimiba 10 mg oral una vez al día | [CIMA Ezetrol, 4.2](https://cima.aemps.es/cima/dochtml/ft/65376/FT_65376.html) |
+| Ácido bempedoico 180 mg oral una vez al día; simvastatina generalmente limitada a 20 mg/día, 40 mg solo bajo la excepción descrita, >40 mg contraindicado | [CIMA Nilemdo, 4.2–4.5](https://cima.aemps.es/cima/dochtml/ft/1201425002/FT_1201425002.html). La nota de síntomas musculares con estatinas procede de 4.4. |
+| Alirocumab subcutáneo: 75 o 150 mg cada 2 semanas, o 300 mg cada 4 semanas | [EMA Praluent, 4.2, pp. 3–4](https://www.ema.europa.eu/en/documents/product-information/praluent-epar-product-information_en.pdf) |
+| Evolocumab subcutáneo: 140 mg cada 2 semanas o 420 mg una vez al mes | [EMA Repatha, 4.2, pp. 3–4](https://www.ema.europa.eu/en/documents/product-information/repatha-epar-product-information_en.pdf) |
+
+Son alternativas para adultos, no dosis iniciales automáticas ni una prescripción seleccionada. Alirocumab y evolocumab se muestran como alternativas de anticuerpos monoclonales; no se añade inclisirán ni se incorpora el escalado específico de hipercolesterolemia familiar homocigótica. Las dosis de una misma categoría no se consideran equivalentes en efecto exacto.
+
+El simulador conserva los 14 escenarios y porcentajes anteriores, siempre desde LDL basal conocido; inicialmente no selecciona ninguno. La intolerancia completa excluye componentes estatínicos. Embarazo/lactancia, hepatopatía activa y diálisis bloquean las opciones y simulación. Con objetivo cumplido o sin indicación de inicio, el catálogo queda como consulta educativa desplegable. La contradicción entre intolerancia completa y pauta con estatina se advierte tanto en datos como en resultados. No se implementa una comprobación exhaustiva de contraindicaciones e interacciones.
+
 ## Límites operativos
 
 Rangos de entrada son límites del prototipo, no intervalos fisiológicos: edad adulta 18–110, PA sistólica 70–250 mmHg, colesterol total 50–500 mg/dL, HDL-c 10–200 mg/dL (menor que el colesterol total), LDL >0–1000 mg/dL, FG >0–200, Lp(a) 0–500 mg/dL o 0–1500 nmol/L. Fuera de estos rangos se debe revisar el caso manualmente. No se infiere sexo, etnia, tratamiento ni diagnóstico a partir de un identificador; no se solicita ninguno.

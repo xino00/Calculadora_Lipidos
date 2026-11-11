@@ -1,32 +1,31 @@
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { EMPTY, RISK_LABEL, REGION_LABEL, type ClinicalInput } from './clinical/types';
 import { SCORE2_LIMITS, assessRisk } from './clinical/risk';
 import { calculateTarget } from './clinical/targets';
 import { format } from './clinical/format';
 import { interpretLpa } from './clinical/lpa';
-import { REFERENCES, REVIEWED } from './clinical/references';
-import { RiskAssessment } from './components/RiskAssessment';
-import { LipidInputs } from './components/LipidInputs';
-import { LpaAssessment } from './components/LpaAssessment';
-import { TreatmentAlgorithm } from './components/TreatmentAlgorithm';
+import { REVIEWED } from './clinical/references';
+import { RiskAssessment, RiskModifiers, ScoreInputs } from './components/RiskAssessment';
+import { LipidInputs, TargetDetails } from './components/LipidInputs';
+import { LpaAssessment, LpaDetails } from './components/LpaAssessment';
+import { TreatmentAlgorithm, TreatmentInputs } from './components/TreatmentAlgorithm';
 import { ResultsPanel } from './components/ResultsPanel';
 import { Icon, Notice } from './components/ui';
+import { SourcesContent } from './components/SourcesContent';
 import './styles.css';
 
-const TABS = [
-  { id: 'risk', label: 'Riesgo', subtitle: 'Contexto y SCORE2', icon: 'shield' },
-  { id: 'targets', label: 'Objetivos LDL-c', subtitle: 'Basal y respuesta', icon: 'target' },
-  { id: 'lpa', label: 'Lipoproteína(a)', subtitle: 'Modificador de riesgo', icon: 'drop' },
-  { id: 'treatment', label: 'Tratamiento', subtitle: 'Decisión y escenarios', icon: 'layers' },
-] as const;
-type Tab = typeof TABS[number]['id'] | 'sources';
+type Screen = 'data' | 'results';
 export default function App() {
   const [data, setData] = useState<ClinicalInput>({ ...EMPTY });
-  const [tab, setTab] = useState<Tab>('risk');
+  const [screen, setScreen] = useState<Screen>('data');
+  const [attempted, setAttempted] = useState(false);
   const [caseId, setCaseId] = useState(0);
   const [example, setExample] = useState(false);
   const [copyStatus, setCopyStatus] = useState('');
   const dialog = useRef<HTMLDialogElement>(null);
+  const sourcesDialog = useRef<HTMLDialogElement>(null);
+  const screenHeading = useRef<HTMLHeadingElement>(null);
+  useEffect(() => { screenHeading.current?.focus(); window.scrollTo({ top: 0, behavior: 'instant' }); }, [screen, caseId]);
   const update = (patch: Partial<ClinicalInput>) => {
     const riskChanged = ['age','secondary','diabetes','diabetesDuration','diabetesRiskFactors','organDamage','earlyType1','ckd','egfr','familial','imaging','severeRiskFactor','baseline','score','region','scoreMode','sex','smoker','sbp','totalChol','hdl'].some(k => k in patch);
     setData(old => ({ ...old, ...(riskChanged ? { reclassified: '' as const, reclassificationReason: '' } : {}), ...patch }));
@@ -47,6 +46,8 @@ export default function App() {
       check('el colesterol total', data.totalChol, ...SCORE2_LIMITS.totalChol); check('el HDL-c', data.hdl, ...SCORE2_LIMITS.hdl); check('la PA sistólica', data.sbp, ...SCORE2_LIMITS.sbp, true);
       if (data.hdl !== null && data.totalChol !== null && data.hdl >= data.totalChol) list.push('Revisa el HDL-c: debe ser menor que el colesterol total.');
     }
+    if (assessed.scoreEligible && data.scoreMode === 'manual') check('el resultado de SCORE2', data.score, 0, 100);
+    check('la Lp(a)', data.lpa, 0, data.lpaUnit === 'mg/dL' ? 500 : 1500);
     return list;
   }, [data, assessed.scoreEligible]);
   const risk = errors.length ? { ...assessed, category: null, error: 'Corrige los valores no válidos antes de interpretar resultados.' } : assessed;
@@ -68,34 +69,59 @@ export default function App() {
     ...errors, ...risk.notices,
     `Fuentes: https://doi.org/10.1093/eurheartj/ehaf190 · Revisión de fuentes: ${REVIEWED}.`,
   ].filter(Boolean).join('\n');
-  function reset() { setData({ ...EMPTY }); setCaseId(v => v + 1); setExample(false); setTab('risk'); setCopyStatus(''); }
-  function loadExample() { setData({ ...EMPTY, age: 58, secondary: true, baseline: 160, onTreatment: true, current: 82, lpa: 72, therapy: 'statin' }); setCaseId(v => v + 1); setExample(true); setTab('targets'); }
-  const navigate = (next: Tab) => { setTab(next); window.scrollTo({ top: 0, behavior: 'instant' }); };
-  const activeIndex = TABS.findIndex(t => t.id === tab);
-  return <div className="app-shell">
+  function reset() {
+    setData({ ...EMPTY }); setCaseId(v => v + 1); setExample(false);
+    setScreen('data'); setAttempted(false); setCopyStatus('');
+  }
+  function loadExample() {
+    setData({ ...EMPTY, age: 58, secondary: true, baseline: 160, onTreatment: true, current: 82, lpa: 72, therapy: 'statin' });
+    setCaseId(v => v + 1); setExample(true); setScreen('data'); setAttempted(false); setCopyStatus('');
+  }
+  function showResults() {
+    if (screen === 'results') return;
+    setAttempted(true);
+    const invalid = document.querySelector<HTMLElement>('#patient-inputs [aria-invalid="true"]');
+    if (invalid) {
+      let parent = invalid.parentElement;
+      while (parent) { if (parent instanceof HTMLDetailsElement) parent.open = true; parent = parent.parentElement; }
+      invalid.focus(); invalid.scrollIntoView({ block: 'center', behavior: 'instant' });
+      return;
+    }
+    if (errors.length) { document.getElementById('input-errors')?.focus(); return; }
+    setScreen('results');
+  }
+  function showSummary() { setCopyStatus(''); dialog.current?.showModal(); }
+  return <div className="app-shell consultation">
     <a className="skip-link" href="#main">Saltar al contenido</a>
-    <aside className="sidebar"><a className="brand" href="#main" onClick={() => navigate('risk')}><span className="brand-mark"><Icon name="pulse" size={25}/></span><span>Lípidos<small>CONSULTA</small></span></a>
-      <div className="sidebar-caption">ESPACIO CLÍNICO</div><nav aria-label="Módulos de la calculadora">{TABS.map((t, n) => <button key={t.id} className={`nav-item ${tab === t.id ? 'active' : ''}`} aria-current={tab === t.id ? 'page' : undefined} onClick={() => navigate(t.id)}><Icon name={t.icon}/><span>{t.label}<small>{t.subtitle}</small></span><b>0{n + 1}</b></button>)}</nav>
-      <button className={`nav-item sources-nav ${tab === 'sources' ? 'active' : ''}`} onClick={() => navigate('sources')}><Icon name="book"/><span>Fuentes y método</span></button>
-      <div className="sidebar-bottom"><span className="version">MARCO ESC/EAS <b>2025</b></span><p>Herramienta independiente<br/>para revisión profesional.</p><span className="review-badge">v0.1 · En revisión clínica</span></div>
-    </aside>
-    <div className="workspace"><header className="topbar"><span><span className="online-dot"/> Sesión local <span className="desktop-only">· sin datos guardados</span></span><button className="reset-button" onClick={reset}><Icon name="reset" size={16}/>Nuevo caso</button></header>
-      <main id="main"><div className="page-heading"><div><div className="eyebrow">PREVENCIÓN CARDIOVASCULAR <span>/</span> ADULTOS</div><h1>Calculadora de lípidos<span>.</span></h1><p>Del riesgo al objetivo. Del objetivo al tratamiento.</p></div><button className="example-button" onClick={loadExample}>{example ? 'Recargar ejemplo' : 'Explorar un ejemplo'}<Icon name="arrow" size={16}/></button></div>
-      <div className="scope-banner"><Icon name="info" size={16}/><span>Basada en ESC/EAS 2025. <strong>Prototipo pendiente de validación clínica externa.</strong> No es una herramienta oficial de ESC.</span>{example && <b className="example-badge">CASO FICTICIO</b>}</div>
-      <nav className="mobile-tabs" aria-label="Módulos">{TABS.map((t, n) => <button key={t.id} className={tab === t.id ? 'active' : ''} onClick={() => navigate(t.id)}><span>0{n + 1}</span>{['Riesgo','LDL-c','Lp(a)','Tratamiento'][n]}</button>)}</nav>
-      {tab === 'sources' ? <section className="card sources-page"><div className="section-heading"><div className="icon-box"><Icon name="book"/></div><div><h2>Fuentes y método</h2><p>Reglas visibles y decisiones trazables.</p></div></div><Notice>Marco clínico fijo: actualización ESC/EAS 2025. Fuentes revisadas el {REVIEWED}. No integra automáticamente nuevas guías ni constituye validación clínica o certificación.</Notice><div className="references">{REFERENCES.map((r, n) => <a href={r.url} target="_blank" rel="noopener noreferrer" key={r.id}><span>{String(n + 1).padStart(2, '0')}</span><div><h3>{r.title}</h3><p>{r.detail}</p></div><Icon name="external" size={17}/></a>)}</div><h3>Decisiones de implementación</h3><ul className="method-list"><li>SCORE2/SCORE2-OP calculados con las ecuaciones publicadas (coeficientes por sexo, interacciones con la edad y recalibración por región). Colesterol en mg/dL convertido a mmol/L con 38,67. Resultado redondeado a un decimal y clasificado con ese valor. Diabetes no entra en el cálculo: en DM se aplica la tabla 3.</li><li>Entrada manual alternativa: resultado de HeartScore u otro registro, con confirmación de origen; ahí la región es solo contexto.</li><li>LDL basal ≥190 mg/dL: se adopta el límite inclusivo de la nota a de tabla 4, aunque la tabla 3 imprime &gt;190.</li><li>Diabetes: criterios de tabla 3. Los casos no cubiertos quedan pendientes; no se mezclan con umbrales SCORE2-Diabetes.</li><li>FG para ERC confirmada: &lt;30 muy alto; 30–&lt;60 alto. FG ≥60 no determina una categoría en esta tabla.</li><li>Lp(a): umbral &gt;50 mg/dL o &gt;105 nmol/L de rec. 4/cuadro 1. El texto también usa ≥105: se señala el valor exacto como frontera clínica.</li><li>LDL: comparación estricta «&lt;» para el objetivo absoluto y «≤50 % del basal» para la reducción ≥50 %. La aritmética no se redondea antes de comparar.</li><li>Estimaciones farmacológicas: promedios de las combinaciones de figura 2. No se suman porcentajes ni se reconstruye un basal desconocido.</li><li>No cubre prescripción individual, interacciones completas, hipertrigliceridemia, pediatría ni criterios de financiación. No integra de forma general guías de ERC posteriores a 2025.</li></ul><h3>Privacidad</h3><p>Sin backend, analítica, cookies de la aplicación, almacenamiento local ni datos identificativos. Todo el cálculo ocurre en el navegador. Los campos se borran al recargar o crear un nuevo caso. El resumen solo sale de la aplicación si lo copias expresamente.</p></section> : <div className="content-grid"><div className="form-column" key={caseId}>
-        {errors.length > 0 && <Notice tone="warning"><strong>Revisa los datos</strong><ul>{errors.map(e => <li key={e}>{e}</li>)}</ul></Notice>}
-        {risk.error && data.age !== null && <Notice tone="warning">{risk.error}</Notice>}
-        {tab === 'risk' && <RiskAssessment data={data} update={update} risk={risk}/>}
-        {tab === 'targets' && <LipidInputs data={data} update={update} target={target}/>}
-        {tab === 'lpa' && <LpaAssessment data={data} update={update}/>}
-        {tab === 'treatment' && (errors.length ? <Notice>Corrige los campos indicados en los módulos de riesgo y LDL para continuar.</Notice> : <TreatmentAlgorithm data={data} update={update} risk={risk} target={target}/>)}
-        {risk.notices.length > 0 && <section className="context-notes"><h3>Matices de esta valoración</h3><ul>{risk.notices.map(s => <li key={s}>{s}</li>)}</ul></section>}
-        <div className="step-navigation"><button className="text-button" onClick={() => navigate(activeIndex > 0 ? TABS[activeIndex - 1].id : 'sources')}>{activeIndex > 0 ? '← Anterior' : 'Consultar el método'}</button>{activeIndex < 3 && <button className="primary-button" onClick={() => navigate(TABS[activeIndex + 1].id)}>{['Introducir LDL-c','Interpretar Lp(a)','Ver tratamiento'][activeIndex]}<Icon name="arrow" size={17}/></button>}</div>
-      </div><ResultsPanel data={data} risk={risk} target={target} onSummary={() => { setCopyStatus(''); dialog.current?.showModal(); }}/></div>}
-      <footer><span>Lípidos · Consulta <b>2025</b></span><button onClick={() => navigate('sources')}>Fuentes y método <Icon name="external" size={12}/></button><span>Revisión de fuentes · {REVIEWED}</span></footer>
+    <div className="workspace">
+      <header className="topbar"><a className="brand" href="#main" onClick={() => setScreen('data')}><span className="brand-mark"><Icon name="pulse" size={23}/></span><span>Lípidos<small>CONSULTA</small></span></a><div className="header-actions"><button className="text-button" onClick={() => sourcesDialog.current?.showModal()}>Fuentes y método</button><button className="reset-button" onClick={reset}><Icon name="reset" size={16}/>Nuevo caso</button></div></header>
+      <main id="main">
+        <div className="page-heading"><div><h1>Calculadora de lípidos<span>.</span></h1><p>Datos del paciente → riesgo, objetivo y opciones de tratamiento.</p></div><button className="example-button" onClick={loadExample}>{example ? 'Recargar ejemplo' : 'Explorar un ejemplo'}<Icon name="arrow" size={16}/></button></div>
+        <div className="scope-banner"><Icon name="info" size={16}/><span>ESC/EAS 2025 · <strong>Prototipo pendiente de validación clínica externa.</strong> Herramienta independiente.</span>{example && <b className="example-badge">CASO FICTICIO</b>}</div>
+        <nav className="workflow-nav" aria-label="Pasos de la consulta">
+          <button aria-current={screen === 'data' ? 'step' : undefined} className={screen === 'data' ? 'active' : ''} onClick={() => setScreen('data')}><span>1</span>Datos del paciente</button>
+          <button aria-current={screen === 'results' ? 'step' : undefined} className={screen === 'results' ? 'active' : ''} onClick={showResults}><span>2</span>Resultado y tratamiento</button>
+        </nav>
+        <div className="screen-heading"><h2 ref={screenHeading} tabIndex={-1}>{screen === 'data' ? 'Datos del paciente' : 'Resultado y tratamiento'}</h2>{screen === 'results' && <button className="reset-button" onClick={() => setScreen('data')}>Editar datos</button>}</div>
+        <section id="patient-inputs" hidden={screen !== 'data'} key={caseId} aria-label="Datos del paciente">
+          {errors.length > 0 && <div id="input-errors" tabIndex={-1}><Notice tone="warning"><strong>Revisa los datos</strong><ul>{errors.map(e => <li key={e}>{e}</li>)}</ul></Notice></div>}
+          {attempted && !errors.length && risk.error && <Notice tone="warning">{risk.error} Puedes ver el resultado parcial; lo que falte quedará pendiente.</Notice>}
+          <div className="input-grid"><div><RiskAssessment data={data} update={update}/><ScoreInputs data={data} update={update} risk={risk}/></div><div><LipidInputs data={data} update={update}/><TreatmentInputs data={data} update={update}/><LpaAssessment data={data} update={update}/><RiskModifiers data={data} update={update} risk={risk}/></div></div>
+          <div className="input-actions"><p>Solo se muestran los campos aplicables. Los datos se borran al recargar.</p><button className="primary-button" onClick={showResults}>Ver resultado y opciones<Icon name="arrow" size={17}/></button></div>
+        </section>
+        {screen === 'results' && <section className="result-page" aria-label="Resultado y tratamiento">
+          <ResultsPanel data={data} risk={risk} target={target} onSummary={showSummary}/>
+          {risk.error && <Notice tone="warning">{risk.error}</Notice>}
+          <TreatmentAlgorithm data={data} update={update} risk={risk} target={target}/>
+          <TargetDetails target={target}/>
+          <LpaDetails data={data}/>
+          <section className="card compact"><details><summary>Motivos y matices de la valoración</summary><div className="details-body">{risk.reasons.length > 0 && <ul>{risk.reasons.map(s => <li key={s}>{s}</li>)}</ul>}{risk.notices.length > 0 && <ul>{risk.notices.map(s => <li key={s}>{s}</li>)}</ul>}{!risk.reasons.length && !risk.notices.length && <p>Completa los datos para determinar el riesgo.</p>}</div></details></section>
+          <div className="step-navigation"><button className="text-button" onClick={() => setScreen('data')}>← Editar datos</button><button className="primary-button" onClick={showSummary}><Icon name="copy" size={17}/>Copiar resumen</button></div>
+        </section>}
+        <footer><span>Lípidos · Consulta <b>ESC/EAS 2025</b></span><button onClick={() => sourcesDialog.current?.showModal()}>Fuentes y método <Icon name="external" size={12}/></button><span>Revisión de reglas · {REVIEWED}</span></footer>
       </main>
     </div>
+    <dialog className="sources-dialog" ref={sourcesDialog} aria-labelledby="sources-title"><button className="close-button sources-close" aria-label="Cerrar fuentes" onClick={() => sourcesDialog.current?.close()}>×</button><SourcesContent/></dialog>
     <dialog ref={dialog} aria-labelledby="summary-title"><div className="dialog-heading"><div><span className="eyebrow">SOLO EN ESTA SESIÓN</span><h2 id="summary-title">Resumen de la valoración</h2></div><button className="close-button" aria-label="Cerrar resumen" onClick={() => dialog.current?.close()}>×</button></div><p className="caption">Revísalo antes de incorporarlo a una nota clínica. No incluye una prescripción.</p><textarea aria-label="Resumen clínico para copiar" readOnly value={summary}/><div className="dialog-actions"><span role="status">{copyStatus}</span><button className="primary-button" onClick={async () => { try { await navigator.clipboard.writeText(summary); setCopyStatus('Resumen copiado'); } catch { setCopyStatus('Selecciona el texto y cópialo manualmente.'); } }}><Icon name="copy" size={16}/>Copiar resumen</button></div></dialog>
   </div>;
 }

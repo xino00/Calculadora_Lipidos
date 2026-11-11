@@ -34,19 +34,19 @@ Al terminar genera un **resumen en texto** para revisar y copiar a la historia c
 - **Guía de base que la actualización complementa:** Mach F, Baigent C, Catapano AL, et al. *2019 ESC/EAS Guidelines for the management of dyslipidaemias: lipid modification to reduce cardiovascular risk.* Eur Heart J. 2020;41(1):111–188. [doi:10.1093/eurheartj/ehz455](https://doi.org/10.1093/eurheartj/ehz455)
 - [Corrección editorial](https://doi.org/10.1093/eurheartj/ehaf1036) de la actualización 2025: no modifica reglas clínicas.
 
-### Qué parte de la guía usa cada módulo
+### Qué parte de la guía usa cada área
 
-| Módulo | Elementos de ESC/EAS 2025 |
+| Área | Elementos de ESC/EAS 2025 |
 | --- | --- |
-| 1 · Riesgo | Tabla 3 (categorías de riesgo); tabla 4, nota a (LDL-c basal ≥190 mg/dL) |
-| 2 · Objetivos LDL-c | Figura 1 (objetivos por categoría y opción <40 mg/dL, clase IIb) |
-| 3 · Lp(a) | Cuadro 1, sección 6 y recomendación 4 |
-| 4 · Tratamiento | Tabla 4 y recomendación 1 (inicio), recomendaciones 2–3 (fármacos y SCA), figura 2 (reducción media de cada combinación) |
+| Riesgo | Tabla 3 (categorías de riesgo); tabla 4, nota a (LDL-c basal ≥190 mg/dL) |
+| Objetivos LDL-c | Figura 1 (objetivos por categoría y opción <40 mg/dL, clase IIb) |
+| Lp(a) | Cuadro 1, sección 6 y recomendación 4 |
+| Tratamiento | Tabla 4 y recomendación 1 (inicio), recomendaciones 2–3 (fármacos y SCA), figura 2 (reducción media de cada combinación) |
 
 Otras fuentes:
 
 - **SCORE2 / SCORE2-OP:** se calculan con las ecuaciones publicadas por el [SCORE2 working group](https://doi.org/10.1093/eurheartj/ehab309) (40–69 años) y el [SCORE2-OP working group](https://doi.org/10.1093/eurheartj/ehab312) (70–89 años), con la recalibración de la región elegida (por defecto, riesgo bajo: España). También admite entrada manual del resultado de [HeartScore](https://www.heartscore.org/).
-- **Fichas técnicas de la AEMPS (CIMA)** de [ácido bempedoico (Nilemdo)](https://cima.aemps.es/cima/dochtml/ft/1201425002/FT_1201425002.html) y [atorvastatina](https://cima.aemps.es/cima/dochtml/ft/74072/FT_74072.html), para las notas de posología y precauciones.
+- **Fichas técnicas de la AEMPS (CIMA)** de [ácido bempedoico (Nilemdo)](https://cima.aemps.es/cima/dochtml/ft/1201425002/FT_1201425002.html) y [atorvastatina](https://cima.aemps.es/cima/dochtml/ft/74072/FT_74072.html), para las notas de posología y precauciones. El catálogo añade rosuvastatina, simvastatina y ezetimiba (CIMA), alirocumab y evolocumab (EMA), y la clasificación de intensidad de estatinas de la [tabla 3 AHA/ACC 2018](https://pmc.ncbi.nlm.nih.gov/articles/PMC7403606/). Solo se toma de esta última la clasificación por dosis, sin cambiar los umbrales ESC/EAS.
 
 ### Objetivos de LDL-c que aplica
 
@@ -72,13 +72,12 @@ El detalle de cada regla, con su tabla o figura de origen, está en [docs/clinic
 
 ## Cómo se usa
 
-1. **Riesgo:** edad, prevención primaria o secundaria y condiciones clínicas. Si procede, sexo, tabaquismo, colesterol total, HDL-c y PA sistólica para calcular SCORE2/SCORE2-OP, o el resultado de HeartScore en «Entrada manual».
-2. **Objetivos LDL-c:** LDL-c basal sin tratamiento y, si ya está tratado, LDL-c actual.
-3. **Lp(a):** valor y unidad del laboratorio (opcional).
-4. **Tratamiento:** tolerancia a estatinas, pauta actual y situaciones especiales. Permite explorar escenarios de combinación.
-5. **Resumen:** revisarlo y copiarlo.
+1. **Datos del paciente:** contexto clínico, perfil lipídico, tratamiento actual, tolerancia y situaciones especiales. Solo se muestran los campos aplicables de SCORE2, diabetes o ERC. Lp(a) y reclasificación son opcionales. Pulsa «Ver resultado y opciones».
+2. **Resultado y tratamiento:** riesgo, objetivo y descenso necesario, seguidos de opciones con principios activos, dosis y enlaces a sus fuentes. El simulador y los detalles son desplegables. «Editar datos» conserva el caso; «Copiar resumen» permite revisarlo antes de copiarlo.
 
-«Explorar un ejemplo» carga un caso ficticio; «Nuevo caso» borra todos los campos.
+La intensidad de una estatina se concreta por principio activo **y dosis**. El catálogo aporta alternativas de referencia, no elige una pauta individual. Las combinaciones conservan las reducciones medias ESC/EAS: no predicen el efecto específico de una dosis. No hay escenario seleccionado por defecto.
+
+«Explorar un ejemplo» carga un caso ficticio; «Nuevo caso» borra todos los campos. «Fuentes y método» abre una consulta auxiliar sin abandonar el caso. Los valores inválidos mantienen la pantalla de datos y enfocan el campo; los datos incompletos permiten un resultado parcial con los apartados pendientes identificados.
 
 ## Qué no hace
 
@@ -95,7 +94,7 @@ Todo se procesa en el navegador y se mantiene solo en memoria: sin servidor, sin
 
 ## Validación
 
-181 pruebas automatizadas con casos sintéticos comprueban los valores límite de cada regla: cálculo de SCORE2/SCORE2-OP frente a los ejemplos de los artículos originales y calculadoras de referencia, cortes de SCORE2, edades, filtrado glomerular, criterios de diabetes, LDL-c basal ≥190, reducción ≥50 %, umbrales de Lp(a), combinaciones de fármacos y situaciones especiales. Verifican que las reglas están implementadas como se describen; **no son una validación clínica**.
+189 pruebas automatizadas con casos sintéticos comprueban los valores límite de cada regla: cálculo de SCORE2/SCORE2-OP frente a los ejemplos de los artículos originales y calculadoras de referencia, cortes de SCORE2, edades, filtrado glomerular, criterios de diabetes, LDL-c basal ≥190, reducción ≥50 %, umbrales de Lp(a), combinaciones de fármacos, situaciones especiales, exclusión de estatinas por intolerancia completa y ausencia de selección automática. Verifican que las reglas están implementadas como se describen; **no son una validación clínica**.
 
 Antes de usarla en la práctica asistencial se necesita una revisión independiente con casos reales representativos, el contraste con las calculadoras oficiales y, si se integra en un centro, su aprobación institucional. Más detalle en [docs/validation.md](docs/validation.md).
 
@@ -144,7 +143,7 @@ El repositorio es público: no subir claves ni datos de pacientes al código, is
 
 La calculadora contiene reglas y cálculos propios basados en las guías citadas, con enlaces a las fuentes. Implementa las ecuaciones publicadas de SCORE2 y SCORE2-OP citando los artículos originales. No distribuye PDFs, tablas o figuras originales ni logos. La guía y su material pertenecen a sus titulares; consultar sus condiciones de reutilización antes de una distribución institucional o comercial.
 
-Revisión de fuentes: 21/10/2026.
+Revisión de reglas ESC/EAS: 21/10/2026. Catálogo de principios activos y dosis: 11/11/2026; trazabilidad en [docs/clinical-method.md](docs/clinical-method.md#catálogo-farmacológico-de-referencia).
 
 ## Licencia
 

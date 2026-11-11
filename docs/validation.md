@@ -2,11 +2,17 @@
 
 Estado: comprobación técnica y revisión de reglas; **no validación clínica externa ni prospectiva**.
 
-Comprobación del 21/10/2026: **181 pruebas automatizadas superadas** y compilación TypeScript/Vite correcta.
+Comprobación del 11/11/2026: **189 pruebas automatizadas superadas** y compilación TypeScript/Vite correcta. Se conservan las 181 pruebas anteriores y se añaden 8 comprobaciones de presentación de opciones farmacológicas.
 
 ## Comprobación de interfaz
 
-Revisión en navegador de escritorio y en un viewport de 390 × 844 píxeles (simulación de anchura móvil, no ensayo en dispositivo físico). Se verificaron navegación, ejemplo ficticio, cálculo del objetivo, cambio de unidad de Lp(a) con vaciado del valor, entrada con coma decimal, cambio del escenario farmacológico, cálculo de SCORE2 con su categoría y paso a entrada manual, y reinicio del caso. No se observó desbordamiento horizontal. Con LDL actual de 50 mg/dL y basal desconocido en prevención secundaria, el objetivo completo permanece sin verificar.
+Revisión del flujo en dos pantallas en Chromium, a 1440 × 1000 y 390 × 844 píxeles (simulación de móvil, no dispositivo físico). Se inspeccionaron capturas de datos, resultados y catálogo. No se observó desbordamiento horizontal, tampoco al desplegar el simulador.
+
+Se comprobaron navegación y conservación de edad/LDL al editar, ejemplo ficticio, reinicio, fuentes auxiliares, SCORE2 calculado y manual, entrada con coma decimal, campos condicionales de diabetes/ERC, errores de HDL y rango manual, y contenido/copia del resumen al portapapeles del navegador de prueba. Un error de Lp(a) dentro de un desplegable cerrado lo abre, enfoca el campo y mantiene la pantalla de datos; cambiar la unidad vacía el valor.
+
+Casos de seguridad del flujo: basal desconocido con LDL actual 50 mg/dL en prevención secundaria mantiene el objetivo sin verificar y suspende estimaciones; intolerancia completa excluye estatinas; la contradicción con una pauta estatínica permanece visible en resultados; objetivo cumplido no muestra el catálogo como intensificación; embarazo, hepatopatía activa y diálisis suspenden opciones y simulación; los datos incompletos permiten consultar el resultado parcial sin desbloquear fármacos. El simulador empieza sin selección y la combinación ezetimiba/bempedoico conserva su cálculo desde el basal.
+
+La revisión documental independiente del catálogo contrastó cada dosis, vía, intervalo e intensidad con los originales enlazados en el método clínico. Se corrigió la atribución de síntomas tendinosos a la ficha de Nilemdo: el aviso enlazado ahora se refiere a síntomas musculares con estatinas. Esta revisión se limita al contenido añadido, no acredita vigencia integral ni validación clínica externa.
 
 ## Pruebas automatizadas
 
@@ -25,6 +31,7 @@ Ejecutar `npm test`. Las pruebas usan casos sintéticos. Cubren:
 - Combinaciones farmacológicas publicadas, no suma de efectos ni reconstrucción del basal.
 - Suspensión de la ruta en situaciones especiales; intolerancia completa; objetivo ya alcanzado; SCA.
 - Entrada numérica con coma decimal y rechazo de notaciones ambiguas.
+- Presentación de opciones: filtros de intolerancia en todos los componentes, selección incompatible sin sustitución automática, catálogo vacío con bloqueos o datos pendientes, y consulta educativa con objetivo cumplido o indicación de hábitos.
 
 ## Qué queda fuera de estas pruebas
 
@@ -36,4 +43,4 @@ Se requiere evaluación independiente con casos representativos, contraste con l
 
 ## Despliegue
 
-La compilación local y el despliegue de Sites se verifican por separado. Los workflows de GitHub quedan preparados, pero su ejecución remota solo puede verificarse después de crear/conectar el repositorio y activar Pages cuando el plan lo permita.
+La compilación local y la publicación en GitHub Pages se verifican por separado. El único workflow de publicación es `pages.yml`, que prueba, compila y sube `dist/`. Tras un push autorizado, comprobar tanto su ejecución como el HTML y los recursos servidos; superar las pruebas locales no demuestra que los cambios estén publicados.

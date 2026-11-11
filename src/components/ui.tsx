@@ -18,19 +18,19 @@ export function Icon({ name, size = 20 }: { name: string; size?: number }) {
   };
   return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{paths[name] || paths.info}</svg>;
 }
-export function NumberField({ label, value, onChange, unit, hint, min = 0, max = 1000, integer = false, placeholder = '—' }: {
+export function NumberField({ label, value, onChange, unit, hint, min = 0, max = 1000, integer = false, placeholder = '—', error }: {
   label: string; value: number | null; onChange: (n: number | null) => void; unit?: string; hint?: string;
-  min?: number; max?: number; integer?: boolean; placeholder?: string;
+  min?: number; max?: number; integer?: boolean; placeholder?: string; error?: string;
 }) {
   const id = useId();
   const [raw, setRaw] = useState(value === null ? '' : String(value));
   useEffect(() => { if (value === null) setRaw(''); else if (Number.isFinite(value) && parseNumber(raw) !== value) setRaw(String(value)); }, [value, raw]);
   const parsed = parseNumber(raw);
-  const invalid = parsed !== null && (!Number.isFinite(parsed) || parsed < min || parsed > max || (integer && !Number.isInteger(parsed)));
+  const invalid = !!error || (parsed !== null && (!Number.isFinite(parsed) || parsed < min || parsed > max || (integer && !Number.isInteger(parsed))));
   return <div className="field"><label htmlFor={id}>{label}</label><div className={`input-wrap ${invalid ? 'invalid' : ''}`}>
     <input id={id} type="text" inputMode={integer ? 'numeric' : 'decimal'} value={raw} placeholder={placeholder} autoComplete="off" aria-invalid={invalid} aria-describedby={`${id}-hint`} onChange={e => { setRaw(e.target.value); onChange(parseNumber(e.target.value)); }} />
     {unit && <span>{unit}</span>}
-  </div><small id={`${id}-hint`} className={invalid ? 'field-error' : ''}>{invalid ? `Valor válido: ${min}–${max}${integer ? ', sin decimales' : ''}.` : hint}</small></div>;
+  </div><small id={`${id}-hint`} className={invalid ? 'field-error' : ''}>{error || (invalid ? `Valor válido: ${min}–${max}${integer ? ', sin decimales' : ''}.` : hint)}</small></div>;
 }
 export function Segmented<T extends string | boolean>({ label, value, options, onChange }: { label: string; value: T | null; options: Array<[T, string]>; onChange: (v: T) => void }) {
   return <fieldset className="field"><legend>{label}</legend><div className="segmented">{options.map(([option, text]) => <button type="button" key={String(option)} className={value === option ? 'selected' : ''} aria-pressed={value === option} onClick={() => onChange(option)}>{text}</button>)}</div></fieldset>;
