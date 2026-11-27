@@ -1,6 +1,7 @@
 export type RiskCategory = 'low' | 'moderate' | 'high' | 'very-high';
 export type LpaUnit = 'mg/dL' | 'nmol/L';
 export type Region = 'low' | 'moderate' | 'high' | 'very-high';
+export type DiabetesFactor = 'age' | 'hypertension' | 'dyslipidemia' | 'smoking' | 'obesity';
 export interface ClinicalInput {
   age: number | null;
   secondary: boolean;
@@ -15,6 +16,8 @@ export interface ClinicalInput {
   diabetes: 'no' | 'type1' | 'type2';
   diabetesDuration: number | null;
   diabetesRiskFactors: number | null;
+  /** Which major factors were ticked; null = not assessed, [] = none. Its length feeds diabetesRiskFactors. */
+  diabetesFactors: DiabetesFactor[] | null;
   organDamage: boolean;
   earlyType1: boolean;
   scoreMode: 'calc' | 'manual';
@@ -56,7 +59,7 @@ export const EMPTY: ClinicalInput = {
   age: null, secondary: false, imaging: false, recurrentOrPolyvascular: false,
   consider40: false, acuteCoronary: false, familial: 'no', severeRiskFactor: false,
   ckd: false, egfr: null, diabetes: 'no', diabetesDuration: null,
-  diabetesRiskFactors: null, organDamage: false, earlyType1: false,
+  diabetesRiskFactors: null, diabetesFactors: null, organDamage: false, earlyType1: false,
   scoreMode: 'calc', sex: null, smoker: null, sbp: null, totalChol: null, hdl: null,
   score: null, region: 'low', scoreConfirmed: false, scorePretreatment: false,
   onTreatment: false, baseline: null, current: null, lpa: null, lpaUnit: 'mg/dL',

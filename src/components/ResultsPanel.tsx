@@ -3,7 +3,6 @@ import { interpretLpa } from '../clinical/lpa';
 import { RISK_LABEL, type ClinicalInput, type Region, type RiskCategory, type RiskResult } from '../clinical/types';
 import type { TargetResult } from '../clinical/targets';
 import { Icon } from './ui';
-import { LdlNomogram } from './LdlNomogram';
 
 const RISK_ORDER: RiskCategory[] = ['low', 'moderate', 'high', 'very-high'];
 const REGION_PHRASE: Record<Region, string> = { low: 'de riesgo bajo (España)', moderate: 'de riesgo moderado', high: 'de riesgo alto', 'very-high': 'de riesgo muy alto' };
@@ -36,6 +35,5 @@ export function ResultsPanel({ data, risk, target, onSummary }: { data: Clinical
       </div>
       <button className="summary-button" onClick={onSummary}><Icon name="copy" size={17}/>Copiar resumen</button>
     </div>
-    {target && <LdlNomogram data={data} risk={risk} target={target}/>}
   </section>;
 }

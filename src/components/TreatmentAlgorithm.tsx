@@ -4,7 +4,8 @@ import type { TargetResult } from '../clinical/targets';
 import { treatmentThreshold } from '../clinical/thresholds';
 import { treatmentOptions, treatmentPlan } from '../clinical/medications';
 import { DRUG_GROUPS, DRUGS_REVIEWED, drugSource, type DrugGroup, type DrugGroupId } from '../clinical/drugs';
-import { Check, Icon, Notice, Source } from './ui';
+import { Check, Chips, Icon, Notice, Source } from './ui';
+import { BA_OPTION, EZE_OPTION, PCSK9_OPTIONS, STATIN_OPTIONS, type NoteChoices, type RxOption } from '../clinical/note';
 
 export function TreatmentInputs({ data: d, update }: InputProps) {
   return <section className="card">
@@ -21,7 +22,16 @@ export function TreatmentInputs({ data: d, update }: InputProps) {
   </section>;
 }
 
-export function DrugOptions({ groups }: { groups: readonly DrugGroupId[] }) {
+type Pick = { choices: NoteChoices; onChange: (patch: Partial<NoteChoices>) => void };
+/* The concrete prescriptions for one catalogue entry, and how picking one writes into the note choices. */
+function rxFor(id: DrugGroupId, name: string, { choices: c, onChange }: Pick): { options: readonly RxOption[]; value: string | null; onPick: (v: string | null) => void } {
+  if (id === 'eze') return { options: [EZE_OPTION], value: c.eze ? EZE_OPTION.id : null, onPick: v => onChange({ eze: !!v }) };
+  if (id === 'ba') return { options: [BA_OPTION], value: c.ba ? BA_OPTION.id : null, onPick: v => onChange({ ba: !!v }) };
+  if (id === 'pcsk9') return { options: PCSK9_OPTIONS.filter(o => o.drug === name), value: c.pcsk9, onPick: pcsk9 => onChange({ pcsk9 }) };
+  return { options: STATIN_OPTIONS.filter(o => o.group === id && o.drug === name), value: c.statin, onPick: statin => onChange({ statin }) };
+}
+
+export function DrugOptions({ groups, pick }: { groups: readonly DrugGroupId[]; pick?: Pick }) {
   return <div className="drug-options">{groups.map(id => {
     const group: DrugGroup = DRUG_GROUPS[id];
     return <section className="drug-option" data-group={id} key={id}>
@@ -30,6 +40,7 @@ export function DrugOptions({ groups }: { groups: readonly DrugGroupId[] }) {
       {group.options.map(option => <div className="drug-dose" key={option.name}>
         <p><strong>{option.name}</strong> · {option.dose}</p>
         <p className="caption">{option.route}{group.options.length > 1 ? ' · Alternativa: no combinar con las demás opciones de este grupo.' : ''}</p>
+        {pick && <Chips {...rxFor(id, option.name, pick)}/>}
         {option.caution && <p className="drug-caution">{option.caution}</p>}
         <Source href={drugSource(option.sourceId).url}>{option.name} · ficha técnica, 4.2{option.caution ? '–4.5' : ''}</Source>
       </div>)}
@@ -38,26 +49,25 @@ export function DrugOptions({ groups }: { groups: readonly DrugGroupId[] }) {
   })}</div>;
 }
 
-export function TreatmentAlgorithm({ data: d, target, risk }: InputProps & { target: TargetResult | null; risk: RiskResult }) {
+/** part='plan': indication and therapeutic route (Resultado). part='catalogue': every drug and dose for reference (Pauta). */
+export function TreatmentAlgorithm({ data: d, target, risk, part }: InputProps & { target: TargetResult | null; risk: RiskResult; part: 'plan' | 'catalogue' }) {
   const indication = treatmentThreshold(risk.category, d.baseline, d.secondary);
   const plan = treatmentPlan(d, target);
   const options = treatmentOptions(d, target);
+  if (part === 'catalogue') return plan.blocked ? null : <section className="card compact"><details><summary>Catálogo completo de fármacos y dosis <span>Referencia</span></summary><div className="details-body">
+    <Notice>{options.educationalOnly ? 'Opciones de consulta: no se propone iniciar ni intensificar tratamiento a partir de esta lista.' : 'Son opciones orientativas de adultos, no una pauta elegida ni dosis de inicio automáticas. Ajustar a la tolerancia, función renal/hepática e interacciones; revisar la ficha técnica.'}</Notice>
+    <DrugOptions groups={options.groups}/>
+    <p className="caption">Catálogo farmacológico contrastado el {DRUGS_REVIEWED}. La clasificación de intensidad no cambia los criterios de indicación ESC/EAS.</p>
+  </div></details></section>;
   return <>
     <section className="card">
-      <div className="section-heading"><div className="icon-box"><Icon name="layers"/></div><div><h2>Opciones de tratamiento</h2><p>Indicación y alternativas con principios activos y dosis.</p></div></div>
+      <div className="section-heading"><div className="icon-box"><Icon name="layers"/></div><div><h2>Ruta terapéutica</h2><p>Indicación según la guía. Combinación, fármaco y dosis se eligen en «Pauta».</p></div></div>
       {!plan.blocked && <div className={`indication ${indication.level}`}><span className="eyebrow">{d.onTreatment ? 'Indicación según situación basal' : '¿Cuándo iniciar?'}</span><h3>{indication.title}</h3><p>{indication.detail}</p><span className="pill">{indication.strength}</span></div>}
       {d.tolerance === 'none' && d.onTreatment && ['statin', 'statin-eze', 'statin-eze-pcsk9'].includes(d.therapy) && <Notice tone="warning">La pauta marcada incluye estatina y la tolerancia indica intolerancia completa. Revisa estos datos antes de decidir.</Notice>}
       <h3 className="spaced">{plan.title}</h3>
       <ol className="plan-list">{plan.steps.map((step, n) => <li key={step}><span>{n + 1}</span><p>{step}</p></li>)}</ol>
       <Source>ESC/EAS 2025 · recomendaciones 1–3 y sección 4</Source>
-      {!plan.blocked && <>
-        {options.educationalOnly ? <details className="spaced"><summary>Consultar fármacos y dosis <span>Referencia</span></summary><div className="details-body"><Notice>Opciones de consulta: no se propone iniciar ni intensificar tratamiento a partir de esta lista.</Notice><DrugOptions groups={options.groups}/></div></details> : <>
-          <Notice>Son opciones orientativas de adultos, no una pauta elegida ni dosis de inicio automáticas. Ajustar a la tolerancia, función renal/hepática e interacciones; revisar la ficha técnica.</Notice>
-          <DrugOptions groups={options.groups}/>
-          <Notice>Tras iniciar o intensificar, comprobar perfil lipídico en <strong>4–6 semanas</strong> y reevaluar respuesta y tolerancia.</Notice>
-        </>}
-        <p className="caption">Catálogo farmacológico contrastado el {DRUGS_REVIEWED}. La clasificación de intensidad no cambia los criterios de indicación ESC/EAS.</p>
-      </>}
+      {!plan.blocked && !options.educationalOnly && <Notice>Tras iniciar o intensificar, comprobar perfil lipídico en <strong>4–6 semanas</strong> y reevaluar respuesta y tolerancia.</Notice>}
     </section>
   </>;
 }

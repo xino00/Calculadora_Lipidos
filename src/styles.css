@@ -113,14 +113,18 @@ main { padding-top: 32px; }
 .trace-head strong { font-weight: 600; }
 .example-badge { flex-shrink: 0; align-self: center; margin-left: auto; padding: 4px 12px; border: 2px solid var(--red); color: var(--red); font-size: 15px; font-weight: 800; font-stretch: var(--narrow); white-space: nowrap; }
 
-/* Two real steps, so they are numbered. */
-.workflow-row { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; border-bottom: 1.5px solid var(--ink); }
-.workflow-nav { display: flex; gap: 28px; }
-.workflow-nav button { display: flex; align-items: baseline; gap: 8px; margin-bottom: -1.5px; padding: 0 2px 10px; border-bottom: 5px solid transparent; font-size: 19px; font-weight: 700; font-stretch: var(--narrow); color: var(--text-2); text-align: left; }
+/* Five real steps, so they are numbered. */
+.mini-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; margin: 0 0 22px; font-size: 14px; color: var(--text-2); }
+.mini-head .example-badge { margin-left: auto; }
+.workflow-nav { display: flex; gap: 26px; margin-top: 6px; border-bottom: 1.5px solid var(--ink); }
+.workflow-nav button { display: flex; align-items: baseline; gap: 7px; margin-bottom: -1.5px; padding: 0 2px 10px; border-bottom: 5px solid transparent; font-size: 19px; font-weight: 700; font-stretch: var(--narrow); color: var(--text-2); text-align: left; white-space: nowrap; }
+.workflow-nav button em { font-style: normal; }
 .workflow-nav button:hover { color: var(--ink); }
 .workflow-nav button > span { font-size: 15px; }
 .workflow-nav button.active { border-bottom-color: var(--ink); color: var(--ink); }
-.workflow-row > .reset-button { margin-bottom: 10px; }
+.step-bar { margin-top: 36px; }
+.step-bar .primary-button { margin-left: auto; }
+.step-bar .reset-button { gap: 0; }
 
 /* ---------- Sections printed on the grid ---------- */
 .card { display: grid; grid-template-columns: var(--gutter) minmax(0, 1fr); column-gap: 40px; padding: 36px 0 40px; border-bottom: 1.5px solid var(--ink); }
@@ -218,7 +222,7 @@ summary > span { margin-left: auto; font-size: 15px; font-weight: 500; font-stre
 .input-actions p { font-size: 15px; color: var(--text-2); }
 
 /* ---------- Result: interpretation printed above the trace ---------- */
-.results-card { padding: 40px 0 8px; border-bottom: 1.5px solid var(--ink); }
+.results-card { padding: 40px 0 0; }
 .readout { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 40px; align-items: end; }
 .readout-risk h2 { font-size: clamp(52px, 8.4vw, 112px); font-weight: 800; letter-spacing: -0.03em; line-height: .88; }
 .risk-ticks { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); max-width: 460px; margin: 22px 0 0; padding: 0; list-style: none; }
@@ -286,6 +290,9 @@ summary > span { margin-left: auto; font-size: 15px; font-weight: 500; font-stre
 .nomo-detail-line + .nomo-detail-line { margin-top: 6px; }
 .nomo-detail-line .ok { color: var(--red); font-weight: 700; }
 .nomo-detail-line .no { font-weight: 700; color: var(--ink); }
+.rx-summary { margin-top: 22px; padding: 14px 16px; border: 1.5px solid var(--ink); background: var(--field); font-size: 17px; line-height: 1.45; }
+.rx-summary span { color: var(--text-2); }
+.treatment-page .nomo { padding-top: 34px; }
 .nomo > .caption { margin-top: 22px; }
 .nomo .notice { margin-top: 22px; }
 
@@ -322,6 +329,36 @@ summary > span { margin-left: auto; font-size: 15px; font-weight: 500; font-stre
   .nomo-patient .nomo-key b { display: inline; font-size: 14px; }
 }
 
+/* ---------- Chips: dose and factor pickers ---------- */
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { display: inline-flex; align-items: baseline; gap: 6px; min-height: 42px; padding: 8px 14px; border: 1.5px solid var(--g, var(--ink)); background: var(--field); color: var(--ink); font-size: 16px; font-weight: 700; font-stretch: var(--narrow); font-variant-numeric: tabular-nums; }
+.chip small { font-size: 12.5px; font-weight: 700; color: var(--g, var(--text-2)); }
+.chip:hover { background: color-mix(in srgb, var(--g, var(--ink)) 10%, var(--field)); }
+.chip[aria-pressed="true"], .chip[aria-pressed="true"]:hover { background: var(--g, var(--ink)); color: var(--paper); }
+.chip[aria-pressed="true"] small { color: var(--paper); }
+.factor-field { grid-column: 1 / -1; }
+
+/* ---------- Note for the clinical record ---------- */
+.note-page { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 56px; align-items: start; padding: 36px 0 8px; }
+.note-choices > h2, .note-out > h2 { font-size: 30px; }
+.note-choices > .caption { margin-top: 6px; }
+.note-marked { margin-top: 16px; padding-left: 14px; border-left: 2.5px solid var(--ink); font-size: 16px; }
+.rx-group { margin-top: 26px; padding-top: 12px; border-top: 3px solid var(--g, var(--ink)); }
+.rx-group > legend { float: left; width: 100%; margin-bottom: 10px; font-size: 19px; font-weight: 800; font-stretch: var(--narrow); color: var(--g, var(--ink)); }
+.rx-group > legend + * { clear: both; }
+.rx-group .segmented { max-width: 420px; }
+.dose-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; padding: 5px 0; }
+.dose-drug { width: 128px; font-size: 16.5px; font-weight: 700; color: var(--g, var(--ink)); }
+.rx-group .check-row { padding: 4px 0; }
+.rx-group .field { margin-top: 14px; }
+.rx-none { margin-top: 26px; }
+.note-page .notice { margin: 14px 0 0; }
+.note-out { position: sticky; top: 24px; display: grid; gap: 14px; }
+.note-out textarea { width: 100%; min-height: 200px; overflow: hidden; padding: 16px; border: 1.5px solid var(--ink); border-radius: 0; background: var(--field); font-size: 16px; line-height: 1.6; resize: vertical; }
+.note-out textarea:focus { outline: 2.5px solid var(--ink); outline-offset: 3px; }
+.note-out .primary-button { width: 100%; font-size: 20px; min-height: 56px; }
+.note-status { min-height: 1.5em; font-size: 15.5px; font-weight: 700; color: var(--ok); }
+
 /* ---------- Treatment detail ---------- */
 .indication { justify-self: stretch; padding: 2px 0 2px 20px; border-left: 5px solid var(--ink); }
 .indication h3 { margin: 4px 0 6px; font-size: 26px; font-weight: 800; letter-spacing: -0.01em; line-height: 1.15; }
@@ -345,6 +382,7 @@ summary > span { margin-left: auto; font-size: 15px; font-weight: 500; font-stre
 .drug-dose { margin-top: 12px; padding: 12px 14px; border-left: 4px solid var(--g, var(--ink)); background: color-mix(in srgb, var(--g, var(--ink)) 7%, var(--paper)); font-size: 16.5px; line-height: 1.5; font-variant-numeric: tabular-nums; }
 .drug-dose strong { color: var(--g, var(--ink)); }
 .drug-dose .caption { margin-top: 3px; }
+.drug-dose .chips { margin-top: 10px; }
 .drug-dose .source { margin-top: 8px; }
 [data-group="high"], [data-group="moderate"] { --g: var(--c-statin); }
 [data-group="eze"] { --g: var(--c-eze); }
@@ -426,6 +464,8 @@ dialog textarea { width: 100%; height: 340px; margin: 16px 0; padding: 16px; bor
   .readout { grid-template-columns: 1fr; gap: 28px; }
   .trace-head dl { grid-template-columns: 1fr; }
   .trace-head dl > div + div { border-left: 0; border-top: 1px solid var(--ink); }
+  .note-page { grid-template-columns: 1fr; gap: 40px; }
+  .note-out { position: static; }
 }
 @media (max-width: 760px) {
   .topbar, main { padding-left: 16px; padding-right: 16px; }
@@ -440,10 +480,13 @@ dialog textarea { width: 100%; height: 340px; margin: 16px 0; padding: 16px; bor
   .page-heading p { font-size: 17px; }
   .trace-head { flex-direction: column; gap: 12px; margin: 24px 0 30px; }
   .example-badge { align-self: flex-start; margin-left: 0; }
-  .workflow-row { flex-direction: column-reverse; align-items: stretch; gap: 14px; }
-  .workflow-row > .reset-button { align-self: flex-start; margin: 0; }
-  .workflow-nav { gap: 18px; }
-  .workflow-nav button { font-size: 17px; }
+  .workflow-nav { gap: 6px; justify-content: space-between; }
+  .workflow-nav button { font-size: 17px; padding-bottom: 8px; }
+  .workflow-nav button:not(.active) em { display: none; }
+  .workflow-nav button:not(.active) > span { display: grid; place-items: center; width: 28px; height: 28px; border: 1.5px solid var(--text-2); border-radius: 50%; }
+  .step-bar-name { display: none; }
+  .step-bar .primary-button { flex: 1; padding: 12px 14px; }
+  .mini-head { margin-bottom: 14px; font-size: 13.5px; }
   .card { display: block; padding: 28px 0 32px; }
   .card > .section-heading { position: static; margin-bottom: 20px; }
   .card.compact { padding: 0; }
@@ -452,7 +495,6 @@ dialog textarea { width: 100%; height: 340px; margin: 16px 0; padding: 16px; bor
   .field-grid > .field:has(select), .field-grid > .field:has(.segmented) { grid-column: 1 / -1; }
   .treatment-fields { grid-template-columns: 1fr; }
   .input-actions p { display: none; }
-  .input-actions .primary-button { width: 100%; }
   .results-card { padding-top: 30px; }
   .readout-lines { font-size: 19px; padding-left: 16px; }
   .readout-foot { flex-direction: column; align-items: stretch; gap: 16px; }
@@ -480,7 +522,7 @@ dialog textarea { width: 100%; height: 340px; margin: 16px 0; padding: 16px; bor
 @media print {
   :root { color-scheme: light; }
   body { background: #fff; }
-  .topbar, .workflow-row, .example-button, .input-actions, .step-navigation, .summary-button, footer { display: none; }
+  .topbar, .workflow-nav, .example-button, .input-actions, .summary-button, footer { display: none; }
   main { padding: 0; }
   .card, .results-card, .nomo { break-inside: avoid; }
   .nomo-track::before, .nomo-seg, .nomo-axis > b, .risk-ticks li.on::before, .notice.warning, .drug-caution { print-color-adjust: exact; -webkit-print-color-adjust: exact; }

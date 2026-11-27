@@ -10,22 +10,40 @@ import { LipidInputs, TargetDetails } from './components/LipidInputs';
 import { LpaAssessment, LpaDetails } from './components/LpaAssessment';
 import { TreatmentAlgorithm, TreatmentInputs } from './components/TreatmentAlgorithm';
 import { ResultsPanel } from './components/ResultsPanel';
+import { LdlNomogram } from './components/LdlNomogram';
 import { Icon, Notice } from './components/ui';
 import { SourcesContent } from './components/SourcesContent';
+import { NotePage } from './components/NotePage';
+import type { RegimenId } from './clinical/medications';
+import { EMPTY_NOTE, buildNote, type NoteChoices } from './clinical/note';
 import './styles.css';
 
-type Screen = 'data' | 'results';
+/* Five short screens instead of two long ones; a sticky bar moves between them. */
+type Screen = 'risk' | 'ldl' | 'results' | 'treatment' | 'note';
+const ORDER: Screen[] = ['risk', 'ldl', 'results', 'treatment', 'note'];
+const LABEL: Record<Screen, string> = { risk: 'Riesgo', ldl: 'LDL y tratamiento', results: 'Resultado', treatment: 'Pauta', note: 'Nota' };
+const TITLE: Record<Screen, string> = { risk: 'Riesgo cardiovascular', ldl: 'LDL-c y tratamiento actual', results: 'Resultado', treatment: 'Elegir pauta', note: 'Nota para la historia' };
+const isData = (s: Screen) => s === 'risk' || s === 'ldl';
+
 export default function App() {
   const [data, setData] = useState<ClinicalInput>({ ...EMPTY });
-  const [screen, setScreen] = useState<Screen>('data');
+  const [screen, setScreen] = useState<Screen>('risk');
   const [attempted, setAttempted] = useState(false);
   const [caseId, setCaseId] = useState(0);
   const [example, setExample] = useState(false);
   const [copyStatus, setCopyStatus] = useState('');
+  const [regimen, setRegimen] = useState<RegimenId | null>(null);
+  const [note, setNote] = useState<NoteChoices>({ ...EMPTY_NOTE });
+  const [noteStatus, setNoteStatus] = useState('');
   const dialog = useRef<HTMLDialogElement>(null);
   const sourcesDialog = useRef<HTMLDialogElement>(null);
   const screenHeading = useRef<HTMLHeadingElement>(null);
-  useEffect(() => { screenHeading.current?.focus(); window.scrollTo({ top: 0, behavior: 'instant' }); }, [screen, caseId]);
+  const pendingFocus = useRef<HTMLElement | null>(null);
+  useEffect(() => {
+    const el = pendingFocus.current; pendingFocus.current = null;
+    if (el) { el.focus(); el.scrollIntoView({ block: 'center', behavior: 'instant' }); return; }
+    screenHeading.current?.focus(); window.scrollTo({ top: 0, behavior: 'instant' });
+  }, [screen, caseId]);
   const update = (patch: Partial<ClinicalInput>) => {
     const riskChanged = ['age','secondary','diabetes','diabetesDuration','diabetesRiskFactors','organDamage','earlyType1','ckd','egfr','familial','imaging','severeRiskFactor','baseline','score','region','scoreMode','sex','smoker','sbp','totalChol','hdl'].some(k => k in patch);
     setData(old => ({ ...old, ...(riskChanged ? { reclassified: '' as const, reclassificationReason: '' } : {}), ...patch }));
@@ -69,55 +87,89 @@ export default function App() {
     ...errors, ...risk.notices,
     `Fuentes: https://doi.org/10.1093/eurheartj/ehaf190 · Revisión de fuentes: ${REVIEWED}.`,
   ].filter(Boolean).join('\n');
+  const noteText = buildNote(data, risk, target, note, example);
+
+  function clearNote() { setRegimen(null); setNote({ ...EMPTY_NOTE }); setNoteStatus(''); }
   function reset() {
     setData({ ...EMPTY }); setCaseId(v => v + 1); setExample(false);
-    setScreen('data'); setAttempted(false); setCopyStatus('');
+    setScreen('risk'); setAttempted(false); setCopyStatus(''); clearNote();
   }
   function loadExample() {
     setData({ ...EMPTY, age: 58, secondary: true, baseline: 160, onTreatment: true, current: 82, lpa: 72, therapy: 'statin' });
-    setCaseId(v => v + 1); setExample(true); setScreen('data'); setAttempted(false); setCopyStatus('');
+    setCaseId(v => v + 1); setExample(true); setScreen('risk'); setAttempted(false); setCopyStatus(''); clearNote();
   }
-  function showResults() {
-    if (screen === 'results') return;
+  const changeNote = (patch: Partial<NoteChoices>) => { setNote(n => ({ ...n, ...patch })); setNoteStatus(''); };
+  /* Leaving the data screens validates first; an invalid field takes you to the screen that holds it. */
+  function goTo(next: Screen) {
+    if (isData(screen) && !isData(next) && !dataValid()) return;
+    setScreen(next);
+  }
+  function dataValid() {
     setAttempted(true);
     const invalid = document.querySelector<HTMLElement>('#patient-inputs [aria-invalid="true"]');
-    if (invalid) {
-      let parent = invalid.parentElement;
-      while (parent) { if (parent instanceof HTMLDetailsElement) parent.open = true; parent = parent.parentElement; }
-      invalid.focus(); invalid.scrollIntoView({ block: 'center', behavior: 'instant' });
-      return;
-    }
-    if (errors.length) { document.getElementById('input-errors')?.focus(); return; }
-    setScreen('results');
+    const target = invalid ?? (errors.length ? document.getElementById('input-errors') : null);
+    if (!target) return true;
+    let parent = target.parentElement;
+    while (parent) { if (parent instanceof HTMLDetailsElement) parent.open = true; parent = parent.parentElement; }
+    const step = (target.closest('[data-step]')?.getAttribute('data-step') as Screen | null) ?? screen;
+    if (step === screen) { target.focus(); target.scrollIntoView({ block: 'center', behavior: 'instant' }); }
+    else { pendingFocus.current = target; setScreen(step); }
+    return false;
   }
   function showSummary() { setCopyStatus(''); dialog.current?.showModal(); }
+  async function copyNote() {
+    try { await navigator.clipboard.writeText(noteText); setNoteStatus('Nota copiada. Ya puedes pegarla en la historia.'); }
+    catch { document.querySelector<HTMLTextAreaElement>('.note-out textarea')?.select(); setNoteStatus('Selecciona el texto y cópialo manualmente.'); }
+  }
+  const index = ORDER.indexOf(screen);
+  const prev = ORDER[index - 1];
+  const next = ORDER[index + 1];
+
   return <div className="app-shell consultation">
     <a className="skip-link" href="#main">Saltar al contenido</a>
     <div className="workspace">
-      <header className="topbar"><a className="brand" href="#main" onClick={() => setScreen('data')}><span className="brand-mark"><Icon name="pulse" size={23}/></span><span>Lípidos<small>Consulta</small></span></a><div className="header-actions"><button className="text-button" onClick={() => sourcesDialog.current?.showModal()}>Fuentes y método</button><button className="reset-button" onClick={reset}><Icon name="reset" size={16}/>Nuevo caso</button></div></header>
+      <header className="topbar"><a className="brand" href="#main" onClick={() => setScreen('risk')}><span className="brand-mark"><Icon name="pulse" size={23}/></span><span>Lípidos<small>Consulta</small></span></a><div className="header-actions"><button className="text-button" onClick={() => sourcesDialog.current?.showModal()}>Fuentes y método</button><button className="reset-button" onClick={reset}><Icon name="reset" size={16}/>Nuevo caso</button></div></header>
       <main id="main">
-        <div className="page-heading"><div><h1>Calculadora de lípidos</h1><p>Introduce los datos del paciente y obtén su riesgo, el objetivo de LDL-c y las opciones de tratamiento.</p></div><button className="example-button" onClick={loadExample}>{example ? 'Recargar ejemplo' : 'Explorar un ejemplo'}</button></div>
-        <div className="trace-head"><dl><div><dt>Marco</dt><dd>ESC/EAS 2025</dd></div><div><dt>Estado</dt><dd><strong>Prototipo pendiente de validación clínica externa</strong>, herramienta independiente</dd></div><div><dt>Datos</dt><dd>Solo en memoria; se borran al recargar</dd></div></dl>{example && <b className="example-badge">Caso ficticio</b>}</div>
-        <div className="workflow-row"><nav className="workflow-nav" aria-label="Pasos de la consulta">
-          <button aria-current={screen === 'data' ? 'step' : undefined} className={screen === 'data' ? 'active' : ''} onClick={() => setScreen('data')}><span>1</span>Datos del paciente</button>
-          <button aria-current={screen === 'results' ? 'step' : undefined} className={screen === 'results' ? 'active' : ''} onClick={showResults}><span>2</span>Resultado y tratamiento</button>
-        </nav>{screen === 'results' && <button className="reset-button" onClick={() => setScreen('data')}>Editar datos</button>}</div>
-        <h2 className="sr-only" ref={screenHeading} tabIndex={-1}>{screen === 'data' ? 'Datos del paciente' : 'Resultado y tratamiento'}</h2>
-        <section id="patient-inputs" hidden={screen !== 'data'} key={caseId} aria-label="Datos del paciente">
+        {screen === 'risk' ? <>
+          <div className="page-heading"><div><h1>Calculadora de lípidos</h1><p>Introduce los datos del paciente y obtén su riesgo, el objetivo de LDL-c y las opciones de tratamiento.</p></div><button className="example-button" onClick={loadExample}>{example ? 'Recargar ejemplo' : 'Explorar un ejemplo'}</button></div>
+          <div className="trace-head"><dl><div><dt>Marco</dt><dd>ESC/EAS 2025</dd></div><div><dt>Estado</dt><dd><strong>Prototipo pendiente de validación clínica externa</strong>, herramienta independiente</dd></div><div><dt>Datos</dt><dd>Solo en memoria; se borran al recargar</dd></div></dl>{example && <b className="example-badge">Caso ficticio</b>}</div>
+        </> : <p className="mini-head">Prototipo pendiente de validación clínica externa. Marco ESC/EAS 2025.{example && <b className="example-badge">Caso ficticio</b>}</p>}
+        <nav className="workflow-nav" aria-label="Pasos de la consulta">
+          {ORDER.map((s, n) => <button key={s} aria-current={screen === s ? 'step' : undefined} aria-label={`Paso ${n + 1}: ${LABEL[s]}`} className={screen === s ? 'active' : ''} onClick={() => goTo(s)}><span>{n + 1}</span><em>{LABEL[s]}</em></button>)}
+        </nav>
+        <h2 className="sr-only" ref={screenHeading} tabIndex={-1}>{TITLE[screen]}</h2>
+
+        <section id="patient-inputs" hidden={!isData(screen)} key={caseId} aria-label="Datos del paciente">
           {errors.length > 0 && <div id="input-errors" tabIndex={-1}><Notice tone="warning"><strong>Revisa los datos</strong><ul>{errors.map(e => <li key={e}>{e}</li>)}</ul></Notice></div>}
           {attempted && !errors.length && risk.error && <Notice tone="warning">{risk.error} Puedes ver el resultado parcial; lo que falte quedará pendiente.</Notice>}
-          <div className="input-grid"><div><RiskAssessment data={data} update={update}/><ScoreInputs data={data} update={update} risk={risk}/></div><div><LipidInputs data={data} update={update}/><TreatmentInputs data={data} update={update}/><LpaAssessment data={data} update={update}/><RiskModifiers data={data} update={update} risk={risk}/></div></div>
-          <div className="input-actions"><p>Solo se muestran los campos aplicables.</p><button className="primary-button" onClick={showResults}>Ver resultado y opciones</button></div>
+          <div data-step="risk" hidden={screen !== 'risk'}><RiskAssessment data={data} update={update}/><ScoreInputs data={data} update={update} risk={risk}/><RiskModifiers data={data} update={update} risk={risk}/></div>
+          <div data-step="ldl" hidden={screen !== 'ldl'}><LipidInputs data={data} update={update}/><TreatmentInputs data={data} update={update}/><LpaAssessment data={data} update={update}/></div>
         </section>
-        {screen === 'results' && <section className="result-page" aria-label="Resultado y tratamiento">
+
+        {screen === 'results' && <section className="result-page" aria-label="Resultado">
           <ResultsPanel data={data} risk={risk} target={target} onSummary={showSummary}/>
           {risk.error && <Notice tone="warning">{risk.error}</Notice>}
-          <TreatmentAlgorithm data={data} update={update} risk={risk} target={target}/>
+          <TreatmentAlgorithm data={data} update={update} risk={risk} target={target} part="plan"/>
           <TargetDetails target={target}/>
           <LpaDetails data={data}/>
           <section className="card compact"><details><summary>Motivos y matices de la valoración</summary><div className="details-body">{risk.reasons.length > 0 && <ul>{risk.reasons.map(s => <li key={s}>{s}</li>)}</ul>}{risk.notices.length > 0 && <ul>{risk.notices.map(s => <li key={s}>{s}</li>)}</ul>}{!risk.reasons.length && !risk.notices.length && <p>Completa los datos para determinar el riesgo.</p>}</div></details></section>
-          <div className="step-navigation"><button className="text-button" onClick={() => setScreen('data')}>Editar datos</button><button className="primary-button" onClick={showSummary}><Icon name="copy" size={17}/>Copiar resumen</button></div>
         </section>}
+
+        {screen === 'treatment' && <section className="result-page treatment-page" aria-label="Elegir pauta">
+          {target ? <LdlNomogram data={data} risk={risk} target={target} selected={regimen} onSelect={setRegimen} choices={note} onChoices={changeNote}/>
+            : <Notice tone="warning">Completa la estratificación del riesgo para comparar combinaciones. Puedes elegir la pauta directamente en «Nota».</Notice>}
+          <TreatmentAlgorithm data={data} update={update} risk={risk} target={target} part="catalogue"/>
+        </section>}
+
+        {screen === 'note' && <section className="result-page" aria-label="Nota para la historia">
+          <NotePage data={data} risk={risk} target={target} choices={note} onChange={changeNote} regimen={regimen} example={example} onCopy={copyNote} status={noteStatus}/>
+        </section>}
+
+        <div className="input-actions step-bar">
+          {prev ? <button className="reset-button" onClick={() => setScreen(prev)}>Anterior<span className="step-bar-name">: {LABEL[prev]}</span></button> : <p>Solo se muestran los campos aplicables.</p>}
+          {next ? <button className="primary-button" onClick={() => goTo(next)}>Siguiente: {LABEL[next]}</button>
+            : <button className="primary-button" onClick={copyNote}><Icon name="copy" size={18}/>Copiar nota</button>}
+        </div>
         <footer><span>Marco ESC/EAS 2025</span><button onClick={() => sourcesDialog.current?.showModal()}>Fuentes y método</button><span>Reglas revisadas el {REVIEWED}</span></footer>
       </main>
     </div>

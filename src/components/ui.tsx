@@ -1,5 +1,6 @@
 import { useEffect, useId, useState, type ReactNode } from 'react';
 import { parseNumber } from '../clinical/format';
+import type { RxOption } from '../clinical/note';
 export function Icon({ name, size = 20 }: { name: string; size?: number }) {
   const paths: Record<string, ReactNode> = {
     pulse: <path d="M3 12h5l3-8 4 16 3-8h3" />,
@@ -43,4 +44,10 @@ export function Notice({ children, tone = 'info' }: { children: ReactNode; tone?
 }
 export function Source({ children, href = 'https://doi.org/10.1093/eurheartj/ehaf190' }: { children: ReactNode; href?: string }) {
   return <a className="source" href={href} target="_blank" rel="noopener noreferrer">{children}<Icon name="external" size={12}/></a>;
+}
+/** Dose picker: one pressed chip at most; pressing it again clears the choice. */
+export function Chips({ options, value, onPick }: { options: readonly RxOption[]; value: string | null; onPick: (id: string | null) => void }) {
+  return <div className="chips">{options.map(o => <button type="button" key={o.id} className="chip" aria-pressed={value === o.id}
+    aria-label={`${o.drug} ${o.dose}${o.group === 'high' ? ', alta intensidad' : o.group === 'moderate' ? ', intensidad moderada' : ''}`}
+    onClick={() => onPick(value === o.id ? null : o.id)}>{o.dose}{o.group === 'high' && <small>alta</small>}</button>)}</div>;
 }

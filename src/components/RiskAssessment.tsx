@@ -1,8 +1,21 @@
-import type { ClinicalInput, RiskCategory, RiskResult } from '../clinical/types';
+import type { ClinicalInput, DiabetesFactor, RiskCategory, RiskResult } from '../clinical/types';
 import { REGION_LABEL, RISK_LABEL } from '../clinical/types';
 import { RANK, SCORE2_LIMITS, missingScoreInputs } from '../clinical/risk';
 import { Check, Icon, Notice, NumberField, Segmented, Source } from './ui';
 export type InputProps = { data: ClinicalInput; update: (patch: Partial<ClinicalInput>) => void };
+const FACTORS: Array<[DiabetesFactor, string]> = [['age', 'Edad avanzada'], ['hypertension', 'Hipertensión arterial'], ['dyslipidemia', 'Dislipidemia'], ['smoking', 'Tabaquismo'], ['obesity', 'Obesidad']];
+/* Tick the factors instead of typing a count. Nothing ticked = not assessed (null), «Ninguno» = 0. */
+function FactorChecklist({ data: d, update }: InputProps) {
+  const list = d.diabetesFactors;
+  const set = (next: DiabetesFactor[] | null) => update({ diabetesFactors: next, diabetesRiskFactors: next === null ? null : next.length });
+  const toggle = (f: DiabetesFactor) => { const cur = list ?? []; const next = cur.includes(f) ? cur.filter(x => x !== f) : [...cur, f]; set(next.length ? next : null); };
+  return <fieldset className="field factor-field"><legend>Otros factores mayores</legend>
+    <div className="chips">{FACTORS.map(([f, label]) => <button type="button" key={f} className="chip" aria-pressed={!!list?.includes(f)} onClick={() => toggle(f)}>{label}</button>)}
+      <button type="button" className="chip" aria-pressed={list !== null && list.length === 0} onClick={() => set(list !== null && list.length === 0 ? null : [])}>Ninguno</button></div>
+    <small>{list === null ? 'Marca los presentes o «Ninguno». No cuentes la propia diabetes.' : `${list.length} factor${list.length === 1 ? '' : 'es'} mayor${list.length === 1 ? '' : 'es'}. No cuentes la propia diabetes.`} «Edad avanzada» (<i lang="en">older age</i>): la guía no fija un umbral; márcala según tu criterio.</small>
+  </fieldset>;
+}
+
 export function RiskAssessment({ data: d, update }: InputProps) {
   return (
     <section className="card"><div className="section-heading"><div className="icon-box"><Icon name="shield"/></div><div><h2>Contexto clínico</h2><p>Empieza por lo que determina el riesgo.</p></div></div>
@@ -11,9 +24,9 @@ export function RiskAssessment({ data: d, update }: InputProps) {
       {d.secondary && <Notice>Incluye enfermedad coronaria, revascularización, ictus/AIT de origen aterosclerótico o enfermedad arterial periférica. No incluye cualquier cardiopatía ni un ictus hemorrágico aislado.</Notice>}
       <div className="subheading">Condiciones que clasifican el riesgo</div>
       <Check checked={d.imaging} onChange={imaging => update({ imaging })} label="Aterosclerosis inequívoca en imagen" detail="Placa significativa (habitualmente estenosis >50 %) o CAC marcadamente elevado (p. ej. >300). Una placa leve aislada es un modificador." />
-      <div className="field-grid spaced"><div className="field"><label htmlFor="diabetes">Diabetes mellitus</label><select id="diabetes" value={d.diabetes} onChange={e => update({ diabetes: e.target.value as ClinicalInput['diabetes'], diabetesDuration: null, diabetesRiskFactors: null, organDamage: false, earlyType1: false })}><option value="no">No conocida</option><option value="type2">Diabetes tipo 2</option><option value="type1">Diabetes tipo 1</option></select></div>
+      <div className="field-grid spaced"><div className="field"><label htmlFor="diabetes">Diabetes mellitus</label><select id="diabetes" value={d.diabetes} onChange={e => update({ diabetes: e.target.value as ClinicalInput['diabetes'], diabetesDuration: null, diabetesRiskFactors: null, diabetesFactors: null, organDamage: false, earlyType1: false })}><option value="no">No conocida</option><option value="type2">Diabetes tipo 2</option><option value="type1">Diabetes tipo 1</option></select></div>
       <div className="field"><label htmlFor="familial">Hipercolesterolemia familiar</label><select id="familial" value={d.familial} onChange={e => update({ familial: e.target.value as ClinicalInput['familial'] })}><option value="no">No conocida</option><option value="isolated">Sí, sin otros factores mayores</option><option value="plus">Sí, con otro factor mayor</option></select></div></div>
-      {d.diabetes !== 'no' && <div className="inset"><div className="field-grid"><NumberField label="Duración de diabetes" value={d.diabetesDuration} onChange={diabetesDuration => update({ diabetesDuration })} unit="años" max={d.age || 100}/><NumberField label="Otros factores mayores" value={d.diabetesRiskFactors} onChange={diabetesRiskFactors => update({ diabetesRiskFactors })} max={5} integer hint="Edad, HTA, dislipidemia, tabaquismo u obesidad; no cuentes la propia DM."/></div><Check checked={d.organDamage} onChange={organDamage => update({ organDamage })} label="Lesión de órgano diana" detail="Microalbuminuria, retinopatía o neuropatía (tabla 3)."/>{d.diabetes === 'type1' && <Check checked={d.earlyType1} onChange={earlyType1 => update({ earlyType1 })} label="Inicio precoz de DM1" detail="Riesgo muy alto si, además, lleva >20 años de evolución."/>}<p className="caption">Se aplica la tabla 3 de dislipidemias 2025. SCORE2 general no es válido en diabetes; la vía SCORE2-Diabetes de ESC 2023 es específica.</p></div>}
+      {d.diabetes !== 'no' && <div className="inset"><div className="field-grid"><NumberField label="Duración de diabetes" value={d.diabetesDuration} onChange={diabetesDuration => update({ diabetesDuration })} unit="años" max={d.age || 100}/><FactorChecklist data={d} update={update}/></div><Check checked={d.organDamage} onChange={organDamage => update({ organDamage })} label="Lesión de órgano diana" detail="Microalbuminuria, retinopatía o neuropatía (tabla 3)."/>{d.diabetes === 'type1' && <Check checked={d.earlyType1} onChange={earlyType1 => update({ earlyType1 })} label="Inicio precoz de DM1" detail="Riesgo muy alto si, además, lleva >20 años de evolución."/>}<p className="caption">Se aplica la tabla 3 de dislipidemias 2025. SCORE2 general no es válido en diabetes; la vía SCORE2-Diabetes de ESC 2023 es específica.</p></div>}
       <Check checked={d.ckd} onChange={ckd => update({ ckd, egfr: ckd ? d.egfr : null })} label="Enfermedad renal crónica confirmada" detail="No clasificar una lesión renal aguda como ERC a partir de una determinación aislada."/>
       {d.ckd && <div className="inset"><NumberField label="Filtrado glomerular" value={d.egfr} onChange={egfr => update({ egfr })} unit="mL/min/1,73 m²" min={0.1} max={200}/></div>}
       <Check checked={d.severeRiskFactor} onChange={severeRiskFactor => update({ severeRiskFactor })} label="Otro factor aislado muy elevado" detail="Colesterol total >310 mg/dL o PA sistólica ≥180 o diastólica ≥110 mmHg."/>

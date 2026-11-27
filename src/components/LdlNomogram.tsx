@@ -1,10 +1,11 @@
-import { useState, type CSSProperties } from 'react';
+import type { CSSProperties } from 'react';
 import type { ClinicalInput, RiskResult } from '../clinical/types';
 import { type TargetResult, calculateTarget, validLdl } from '../clinical/targets';
 import { availableRegimens, selectedRegimen, simulateRegimen, treatmentPlan, type RegimenId } from '../clinical/medications';
 import type { DrugGroupId } from '../clinical/drugs';
 import { format } from '../clinical/format';
 import { DrugOptions } from './TreatmentAlgorithm';
+import { applyRegimen, chosenDrugs, type NoteChoices } from '../clinical/note';
 import { Notice, Source } from './ui';
 
 /* Presentation only. Short component names for the chart; full names stay in aria-labels and the detail below. */
@@ -15,8 +16,7 @@ type Vars = CSSProperties & Record<`--${string}`, number | string>;
 
 function tickStep(max: number) { return max <= 200 ? 20 : max <= 400 ? 50 : 100; }
 
-export function LdlNomogram({ data: d, risk, target }: { data: ClinicalInput; risk: RiskResult; target: TargetResult }) {
-  const [selected, setSelected] = useState<RegimenId | null>(null);
+export function LdlNomogram({ data: d, risk, target, selected, onSelect: setSelected, choices, onChoices }: { data: ClinicalInput; risk: RiskResult; target: TargetResult; selected: RegimenId | null; onSelect: (id: RegimenId | null) => void; choices: NoteChoices; onChoices: (patch: Partial<NoteChoices>) => void }) {
   const baseline = validLdl(d.baseline) ? d.baseline : null;
   const currentRaw = d.onTreatment ? d.current : d.baseline;
   const current = validLdl(currentRaw) ? currentRaw : null;
@@ -56,7 +56,7 @@ export function LdlNomogram({ data: d, risk, target }: { data: ClinicalInput; ri
           const sim = simulateRegimen(d.baseline, r.id)!;
           const ok = reaches(sim.ldl);
           const name = r.components.map(c => SHORT[c]).join(' + ');
-          return <button type="button" key={r.id} className={`nomo-item nomo-col ${ok ? 'reaches' : ''}`} aria-pressed={chosen?.id === r.id} onClick={() => setSelected(chosen?.id === r.id ? null : r.id)}
+          return <button type="button" key={r.id} className={`nomo-item nomo-col ${ok ? 'reaches' : ''}`} aria-pressed={chosen?.id === r.id} onClick={() => { if (chosen?.id === r.id) { setSelected(null); return; } setSelected(r.id); onChoices(applyRegimen(choices, r.components)); }}
             aria-label={`${r.name}: descenso medio ${r.reduction} %, LDL-c estimado ${format(sim.ldl)} mg/dL; ${ok ? 'alcanzaría' : 'no alcanzaría'} el objetivo.`} title={name}>
             <span className="nomo-track" style={{ '--a': sim.ldl, '--b': baseline! } as Vars}>
               <i className="nomo-seg"/>
@@ -74,9 +74,11 @@ export function LdlNomogram({ data: d, risk, target }: { data: ClinicalInput; ri
       : chosen && chosenSim ? <div className="nomo-detail">
           <p className="nomo-detail-line"><strong>{chosen.name}</strong></p>
           <p className="nomo-detail-line">Descenso medio ≈{chosen.reduction} % desde el basal: LDL-c estimado <strong>{format(chosenSim.ldl)} mg/dL</strong>. <span className={reaches(chosenSim.ldl) ? 'ok' : 'no'}>{reaches(chosenSim.ldl) ? 'Alcanzaría el objetivo.' : 'No alcanzaría el objetivo.'}</span></p>
-          <DrugOptions groups={chosen.components}/>
+          <p className="caption">Elige principio activo y dosis en cada ficha; pasan a la nota.</p>
+          <DrugOptions groups={chosen.components} pick={{ choices, onChange: onChoices }}/>
+          <RxSummary choices={choices} tolerance={d.tolerance}/>
         </div>
-      : <p className="caption">Pulsa una combinación para ver sus fármacos y dosis. Ninguna está seleccionada por defecto.</p>}
+      : <><p className="caption">Pulsa una combinación para elegir sus fármacos y dosis. Ninguna está seleccionada por defecto.</p>{chosenDrugs(choices, d.tolerance).length > 0 && <RxSummary choices={choices} tolerance={d.tolerance}/>}</>}
 
     {regimens.length > 0 && <>
       <Notice>Estimaciones desde el <strong>LDL basal sin tratamiento</strong>: promedios de combinaciones de la figura 2. No se suman porcentajes, no predicen la respuesta a un principio activo o dosis concretos y no son descensos adicionales sobre el LDL actual.</Notice>
@@ -84,4 +86,9 @@ export function LdlNomogram({ data: d, risk, target }: { data: ClinicalInput; ri
       <Source>ESC/EAS 2025 · figura 2</Source>
     </>}
   </figure>;
+}
+
+function RxSummary({ choices, tolerance }: { choices: NoteChoices; tolerance: ClinicalInput['tolerance'] }) {
+  const rx = chosenDrugs(choices, tolerance);
+  return <p className="rx-summary" role="status">Pauta para la nota: {rx.length ? <strong>{rx.map(o => o.text).join(' + ')}</strong> : <span>elige principio activo y dosis en las fichas.</span>}</p>;
 }
