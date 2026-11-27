@@ -24,7 +24,7 @@ export function TreatmentInputs({ data: d, update }: InputProps) {
 export function DrugOptions({ groups }: { groups: readonly DrugGroupId[] }) {
   return <div className="drug-options">{groups.map(id => {
     const group: DrugGroup = DRUG_GROUPS[id];
-    return <section className="drug-option" key={id}>
+    return <section className="drug-option" data-group={id} key={id}>
       <h3>{group.name}</h3>
       <p className="caption">{group.description}</p>
       {group.options.map(option => <div className="drug-dose" key={option.name}>

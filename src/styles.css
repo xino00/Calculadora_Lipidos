@@ -15,6 +15,11 @@
   --hi-ink: #2a2a2a;
   --ok: #1d6b40;
   --error: #b3261e;
+  /* Drug classes. Never red: red means the target. */
+  --c-statin: #2549b8;
+  --c-eze: #1d7a50;
+  --c-ba: #6c3fb8;
+  --c-pcsk9: #8a5a00;
   --veil: color-mix(in srgb, var(--paper) 88%, transparent);
 
   --sans: 'Archivo Variable', 'Archivo', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
@@ -42,6 +47,10 @@
     --hi-ink: #fff6b0;
     --ok: #8bd6a8;
     --error: #ff8a80;
+    --c-statin: #93abff;
+    --c-eze: #6fd3a0;
+    --c-ba: #c3a3ff;
+    --c-pcsk9: #e0b060;
   }
 }
 
@@ -232,15 +241,17 @@ summary > span { margin-left: auto; font-size: 15px; font-weight: 500; font-stre
 .nomo-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 6px 28px; margin-bottom: 26px; }
 .nomo-head h3 { font-size: 22px; }
 .nomo-head p { max-width: 64ch; font-size: 15px; color: var(--text-2); }
-.nomo-plot { --h: 360px; display: grid; grid-template-columns: 54px 92px minmax(0, 1fr); }
-.nomo-axis { position: relative; height: var(--h); border-right: 2px solid var(--ink); font-size: 13.5px; font-stretch: var(--narrow); font-variant-numeric: tabular-nums; color: var(--text-2); }
+.nomo-head .nomo-legend { flex-basis: 100%; max-width: none; font-size: 13.5px; font-stretch: var(--narrow); }
+.nomo-legend b { font-weight: 800; }
+.nomo-plot { --h: 360px; --top: 86px; display: grid; grid-template-columns: 54px 92px minmax(0, 1fr); }
+.nomo-axis { position: relative; height: var(--h); margin-top: var(--top); border-right: 2px solid var(--ink); font-size: 13.5px; font-stretch: var(--narrow); font-variant-numeric: tabular-nums; color: var(--text-2); }
 .nomo-axis > * { position: absolute; right: 10px; bottom: calc(var(--v) / var(--max) * 100%); transform: translateY(50%); line-height: 1; }
 .nomo-axis > span::after { content: ''; position: absolute; top: 50%; right: -10px; width: 6px; height: 1.5px; background: var(--ink); }
 .nomo-axis > b { right: 8px; padding: 2px 4px; background: var(--red); color: var(--paper); font-size: 14px; font-weight: 800; z-index: 1; }
 
 .nomo-plot:not(:has(.nomo-cols)) { grid-template-columns: 54px minmax(0, 300px); }
 .nomo-cols { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); }
-.nomo-item { display: grid; grid-template-rows: var(--h) auto auto; min-width: 0; padding: 0; text-align: center; color: var(--text); }
+.nomo-item { display: grid; grid-template-rows: var(--top) var(--h) auto; min-width: 0; padding: 0; text-align: center; color: var(--text); }
 .nomo-col:hover { background: color-mix(in srgb, var(--ink) 5%, transparent); }
 .nomo-col[aria-pressed="true"] { background: color-mix(in srgb, var(--ink) 9%, transparent); }
 .nomo-col[aria-pressed="true"] .nomo-label { color: var(--ink); font-weight: 800; }
@@ -258,9 +269,14 @@ summary > span { margin-left: auto; font-size: 15px; font-weight: 500; font-stre
 .nomo-dot { position: absolute; left: 50%; bottom: calc(var(--v) / var(--max) * 100%); width: 16px; height: 16px; transform: translate(-50%, 50%); border-radius: 50%; border: 2.5px solid var(--ink); background: var(--paper); z-index: 1; }
 .nomo-dot.actual { width: 20px; height: 20px; background: var(--ink); }
 .nomo-link { position: absolute; left: 50%; bottom: calc(var(--a) / var(--max) * 100%); height: calc((var(--b) - var(--a)) / var(--max) * 100%); border-left: 2px dashed var(--ink); }
-.nomo-label { display: block; padding: 10px 2px 4px; font-size: 13px; line-height: 1.25; font-stretch: var(--narrow); color: var(--text-2); overflow-wrap: anywhere; }
+.nomo-item > .nomo-label { grid-row: 1; align-self: end; }
+.nomo-item > .nomo-track { grid-row: 2; }
+.nomo-item > .nomo-key { grid-row: 3; }
+.nomo-label { display: block; padding: 4px 2px 12px; font-size: 13px; line-height: 1.25; font-stretch: var(--narrow); color: var(--text-2); overflow-wrap: anywhere; }
 .nomo-label > span { display: block; }
 .nomo-patient .nomo-label { font-weight: 800; color: var(--ink); font-size: 14px; }
+.nomo-pct { display: block; margin-top: 3px; font-size: 12.5px; font-weight: 700; color: var(--ink); font-variant-numeric: tabular-nums; }
+.nomo-patient .nomo-key { padding-top: 10px; }
 .nomo-key { display: none; font-size: 14px; font-stretch: var(--narrow); font-variant-numeric: tabular-nums; color: var(--text-2); }
 .nomo-patient .nomo-key { display: block; padding: 0 2px; font-size: 12.5px; line-height: 1.35; }
 .nomo-patient .nomo-key b { display: block; font-size: 15px; }
@@ -283,8 +299,11 @@ summary > span { margin-left: auto; font-size: 15px; font-weight: 500; font-stre
   .nomo-axis > b { right: auto; top: -3px; }
   .nomo-cols { display: block; }
   .nomo-item { grid-template-columns: var(--lab) minmax(0, 1fr) var(--val); grid-template-rows: auto; width: 100%; align-items: center; text-align: left; }
-  .nomo-item > .nomo-label { grid-column: 1; grid-row: 1; padding: 8px 10px 8px 0; font-size: 14px; }
+  .nomo-item > .nomo-label { grid-column: 1; grid-row: 1; align-self: center; padding: 8px 10px 8px 0; font-size: 14px; }
+  .nomo-item > .nomo-track, .nomo-item > .nomo-key { grid-row: 1; }
   .nomo-label > span { display: inline; }
+  .nomo-pct { display: none; }
+  .nomo-patient .nomo-key { padding-top: 0; }
   .nomo-label > span + span::before { content: ' + '; }
   .nomo-track { grid-column: 2; grid-row: 1; align-self: stretch; min-height: 42px; border-bottom: 0; border-left: 2px solid var(--ink); }
   .nomo-track::before { left: calc(var(--t) / var(--max) * 100%); right: auto; top: 0; bottom: 0; width: 2px; height: auto; margin: 0 0 0 -1px; }
@@ -318,13 +337,20 @@ summary > span { margin-left: auto; font-size: 15px; font-weight: 500; font-stre
 .plan-list li > p { max-width: 74ch; padding-top: 2px; font-size: 16.5px; line-height: 1.55; }
 
 /* Drug catalogue: a formulary, rules not boxes. */
-.drug-options { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 0 40px; margin-top: 10px; }
-.drug-option { min-width: 0; padding: 18px 0 24px; border-top: 3px solid var(--ink); overflow-wrap: anywhere; }
-.drug-option h3 { font-size: 20px; }
+.drug-options { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 8px 48px; margin-top: 10px; }
+.drug-option { min-width: 0; padding: 16px 0 24px; border-top: 5px solid var(--g, var(--ink)); overflow-wrap: anywhere; }
+.drug-option h3 { font-size: 20px; color: var(--g, var(--ink)); }
 .drug-option > .caption { margin-top: 4px; }
 .drug-option .source { margin: 8px 14px 0 0; }
-.drug-dose { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--ink); font-size: 16.5px; line-height: 1.5; font-variant-numeric: tabular-nums; }
+.drug-dose { margin-top: 12px; padding: 12px 14px; border-left: 4px solid var(--g, var(--ink)); background: color-mix(in srgb, var(--g, var(--ink)) 7%, var(--paper)); font-size: 16.5px; line-height: 1.5; font-variant-numeric: tabular-nums; }
+.drug-dose strong { color: var(--g, var(--ink)); }
 .drug-dose .caption { margin-top: 3px; }
+.drug-dose .source { margin-top: 8px; }
+[data-group="high"], [data-group="moderate"] { --g: var(--c-statin); }
+[data-group="eze"] { --g: var(--c-eze); }
+[data-group="ba"] { --g: var(--c-ba); }
+[data-group="pcsk9"] { --g: var(--c-pcsk9); }
+.nomo-label > span[data-group], .nomo-legend b[data-group] { color: var(--g); font-weight: 700; }
 .drug-caution { margin: 10px 0 0; padding: 8px 12px; background: var(--hi); color: var(--hi-ink); font-size: 14.5px; line-height: 1.5; }
 
 .target-criteria { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; padding-bottom: 20px; }

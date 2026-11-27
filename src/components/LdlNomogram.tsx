@@ -35,6 +35,7 @@ export function LdlNomogram({ data: d, risk, target }: { data: ClinicalInput; ri
     <figcaption className="nomo-head">
       <h3>LDL-c frente al objetivo</h3>
       <p>{regimens.length ? 'Cada trazo baja desde el LDL basal hasta el valor medio esperable con esa combinación. En rojo, el tramo dentro del objetivo.' : 'Posición del paciente respecto al objetivo.'}</p>
+      {regimens.length > 0 && <p className="nomo-legend"><b data-group="high">Est</b> estatina de intensidad alta o moderada; <b data-group="eze">Eze</b> ezetimiba; <b data-group="ba">Bemp</b> ácido bempedoico; <b data-group="pcsk9">PCSK9</b> alirocumab o evolocumab.</p>}
     </figcaption>
     <div className="nomo-plot">
       <div className="nomo-axis" aria-hidden="true">
@@ -61,7 +62,7 @@ export function LdlNomogram({ data: d, risk, target }: { data: ClinicalInput; ri
               <i className="nomo-seg"/>
               <span className="nomo-val">{format(sim.ldl, 0)}</span>
             </span>
-            <span className="nomo-label">{r.components.map(c => <span key={c} data-full={SHORT[c]}>{TINY[c]}</span>)}</span>
+            <span className="nomo-label">{r.components.map(c => <span key={c} data-group={c}>{TINY[c]}</span>)}<small className="nomo-pct">−{r.reduction} %</small></span>
             <span className="nomo-key"><b>{format(sim.ldl, 0)}</b> −{r.reduction} %</span>
           </button>;
         })}
