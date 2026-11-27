@@ -94,20 +94,20 @@ export default function App() {
   return <div className="app-shell consultation">
     <a className="skip-link" href="#main">Saltar al contenido</a>
     <div className="workspace">
-      <header className="topbar"><a className="brand" href="#main" onClick={() => setScreen('data')}><span className="brand-mark"><Icon name="pulse" size={23}/></span><span>Lípidos<small>CONSULTA</small></span></a><div className="header-actions"><button className="text-button" onClick={() => sourcesDialog.current?.showModal()}>Fuentes y método</button><button className="reset-button" onClick={reset}><Icon name="reset" size={16}/>Nuevo caso</button></div></header>
+      <header className="topbar"><a className="brand" href="#main" onClick={() => setScreen('data')}><span className="brand-mark"><Icon name="pulse" size={23}/></span><span>Lípidos<small>Consulta</small></span></a><div className="header-actions"><button className="text-button" onClick={() => sourcesDialog.current?.showModal()}>Fuentes y método</button><button className="reset-button" onClick={reset}><Icon name="reset" size={16}/>Nuevo caso</button></div></header>
       <main id="main">
-        <div className="page-heading"><div><h1>Calculadora de lípidos<span>.</span></h1><p>Datos del paciente → riesgo, objetivo y opciones de tratamiento.</p></div><button className="example-button" onClick={loadExample}>{example ? 'Recargar ejemplo' : 'Explorar un ejemplo'}<Icon name="arrow" size={16}/></button></div>
-        <div className="scope-banner"><Icon name="info" size={16}/><span>ESC/EAS 2025 · <strong>Prototipo pendiente de validación clínica externa.</strong> Herramienta independiente.</span>{example && <b className="example-badge">CASO FICTICIO</b>}</div>
-        <nav className="workflow-nav" aria-label="Pasos de la consulta">
+        <div className="page-heading"><div><h1>Calculadora de lípidos</h1><p>Introduce los datos del paciente y obtén su riesgo, el objetivo de LDL-c y las opciones de tratamiento.</p></div><button className="example-button" onClick={loadExample}>{example ? 'Recargar ejemplo' : 'Explorar un ejemplo'}</button></div>
+        <div className="trace-head"><dl><div><dt>Marco</dt><dd>ESC/EAS 2025</dd></div><div><dt>Estado</dt><dd><strong>Prototipo pendiente de validación clínica externa</strong>, herramienta independiente</dd></div><div><dt>Datos</dt><dd>Solo en memoria; se borran al recargar</dd></div></dl>{example && <b className="example-badge">Caso ficticio</b>}</div>
+        <div className="workflow-row"><nav className="workflow-nav" aria-label="Pasos de la consulta">
           <button aria-current={screen === 'data' ? 'step' : undefined} className={screen === 'data' ? 'active' : ''} onClick={() => setScreen('data')}><span>1</span>Datos del paciente</button>
           <button aria-current={screen === 'results' ? 'step' : undefined} className={screen === 'results' ? 'active' : ''} onClick={showResults}><span>2</span>Resultado y tratamiento</button>
-        </nav>
-        <div className="screen-heading"><h2 ref={screenHeading} tabIndex={-1}>{screen === 'data' ? 'Datos del paciente' : 'Resultado y tratamiento'}</h2>{screen === 'results' && <button className="reset-button" onClick={() => setScreen('data')}>Editar datos</button>}</div>
+        </nav>{screen === 'results' && <button className="reset-button" onClick={() => setScreen('data')}>Editar datos</button>}</div>
+        <h2 className="sr-only" ref={screenHeading} tabIndex={-1}>{screen === 'data' ? 'Datos del paciente' : 'Resultado y tratamiento'}</h2>
         <section id="patient-inputs" hidden={screen !== 'data'} key={caseId} aria-label="Datos del paciente">
           {errors.length > 0 && <div id="input-errors" tabIndex={-1}><Notice tone="warning"><strong>Revisa los datos</strong><ul>{errors.map(e => <li key={e}>{e}</li>)}</ul></Notice></div>}
           {attempted && !errors.length && risk.error && <Notice tone="warning">{risk.error} Puedes ver el resultado parcial; lo que falte quedará pendiente.</Notice>}
           <div className="input-grid"><div><RiskAssessment data={data} update={update}/><ScoreInputs data={data} update={update} risk={risk}/></div><div><LipidInputs data={data} update={update}/><TreatmentInputs data={data} update={update}/><LpaAssessment data={data} update={update}/><RiskModifiers data={data} update={update} risk={risk}/></div></div>
-          <div className="input-actions"><p>Solo se muestran los campos aplicables. Los datos se borran al recargar.</p><button className="primary-button" onClick={showResults}>Ver resultado y opciones<Icon name="arrow" size={17}/></button></div>
+          <div className="input-actions"><p>Solo se muestran los campos aplicables.</p><button className="primary-button" onClick={showResults}>Ver resultado y opciones</button></div>
         </section>
         {screen === 'results' && <section className="result-page" aria-label="Resultado y tratamiento">
           <ResultsPanel data={data} risk={risk} target={target} onSummary={showSummary}/>
@@ -116,12 +116,12 @@ export default function App() {
           <TargetDetails target={target}/>
           <LpaDetails data={data}/>
           <section className="card compact"><details><summary>Motivos y matices de la valoración</summary><div className="details-body">{risk.reasons.length > 0 && <ul>{risk.reasons.map(s => <li key={s}>{s}</li>)}</ul>}{risk.notices.length > 0 && <ul>{risk.notices.map(s => <li key={s}>{s}</li>)}</ul>}{!risk.reasons.length && !risk.notices.length && <p>Completa los datos para determinar el riesgo.</p>}</div></details></section>
-          <div className="step-navigation"><button className="text-button" onClick={() => setScreen('data')}>← Editar datos</button><button className="primary-button" onClick={showSummary}><Icon name="copy" size={17}/>Copiar resumen</button></div>
+          <div className="step-navigation"><button className="text-button" onClick={() => setScreen('data')}>Editar datos</button><button className="primary-button" onClick={showSummary}><Icon name="copy" size={17}/>Copiar resumen</button></div>
         </section>}
-        <footer><span>Lípidos · Consulta <b>ESC/EAS 2025</b></span><button onClick={() => sourcesDialog.current?.showModal()}>Fuentes y método <Icon name="external" size={12}/></button><span>Revisión de reglas · {REVIEWED}</span></footer>
+        <footer><span>Marco ESC/EAS 2025</span><button onClick={() => sourcesDialog.current?.showModal()}>Fuentes y método</button><span>Reglas revisadas el {REVIEWED}</span></footer>
       </main>
     </div>
     <dialog className="sources-dialog" ref={sourcesDialog} aria-labelledby="sources-title"><button className="close-button sources-close" aria-label="Cerrar fuentes" onClick={() => sourcesDialog.current?.close()}>×</button><SourcesContent/></dialog>
-    <dialog ref={dialog} aria-labelledby="summary-title"><div className="dialog-heading"><div><span className="eyebrow">SOLO EN ESTA SESIÓN</span><h2 id="summary-title">Resumen de la valoración</h2></div><button className="close-button" aria-label="Cerrar resumen" onClick={() => dialog.current?.close()}>×</button></div><p className="caption">Revísalo antes de incorporarlo a una nota clínica. No incluye una prescripción.</p><textarea aria-label="Resumen clínico para copiar" readOnly value={summary}/><div className="dialog-actions"><span role="status">{copyStatus}</span><button className="primary-button" onClick={async () => { try { await navigator.clipboard.writeText(summary); setCopyStatus('Resumen copiado'); } catch { setCopyStatus('Selecciona el texto y cópialo manualmente.'); } }}><Icon name="copy" size={16}/>Copiar resumen</button></div></dialog>
+    <dialog ref={dialog} aria-labelledby="summary-title"><div className="dialog-heading"><div><span className="eyebrow">Solo en esta sesión</span><h2 id="summary-title">Resumen de la valoración</h2></div><button className="close-button" aria-label="Cerrar resumen" onClick={() => dialog.current?.close()}>×</button></div><p className="caption">Revísalo antes de incorporarlo a una nota clínica. No incluye una prescripción.</p><textarea aria-label="Resumen clínico para copiar" readOnly value={summary}/><div className="dialog-actions"><span role="status">{copyStatus}</span><button className="primary-button" onClick={async () => { try { await navigator.clipboard.writeText(summary); setCopyStatus('Resumen copiado'); } catch { setCopyStatus('Selecciona el texto y cópialo manualmente.'); } }}><Icon name="copy" size={16}/>Copiar resumen</button></div></dialog>
   </div>;
 }

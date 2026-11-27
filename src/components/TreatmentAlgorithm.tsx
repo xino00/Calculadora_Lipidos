@@ -1,11 +1,9 @@
-import { useState } from 'react';
 import type { InputProps } from './RiskAssessment';
 import type { RiskResult } from '../clinical/types';
-import { type TargetResult, calculateTarget, validLdl } from '../clinical/targets';
+import type { TargetResult } from '../clinical/targets';
 import { treatmentThreshold } from '../clinical/thresholds';
-import { availableRegimens, selectedRegimen, simulateRegimen, treatmentOptions, treatmentPlan, type RegimenId } from '../clinical/medications';
+import { treatmentOptions, treatmentPlan } from '../clinical/medications';
 import { DRUG_GROUPS, DRUGS_REVIEWED, drugSource, type DrugGroup, type DrugGroupId } from '../clinical/drugs';
-import { format } from '../clinical/format';
 import { Check, Icon, Notice, Source } from './ui';
 
 export function TreatmentInputs({ data: d, update }: InputProps) {
@@ -23,7 +21,7 @@ export function TreatmentInputs({ data: d, update }: InputProps) {
   </section>;
 }
 
-function DrugOptions({ groups }: { groups: readonly DrugGroupId[] }) {
+export function DrugOptions({ groups }: { groups: readonly DrugGroupId[] }) {
   return <div className="drug-options">{groups.map(id => {
     const group: DrugGroup = DRUG_GROUPS[id];
     return <section className="drug-option" key={id}>
@@ -41,18 +39,13 @@ function DrugOptions({ groups }: { groups: readonly DrugGroupId[] }) {
 }
 
 export function TreatmentAlgorithm({ data: d, target, risk }: InputProps & { target: TargetResult | null; risk: RiskResult }) {
-  const [selected, setSelected] = useState<RegimenId | null>(null);
   const indication = treatmentThreshold(risk.category, d.baseline, d.secondary);
   const plan = treatmentPlan(d, target);
   const options = treatmentOptions(d, target);
-  const available = availableRegimens(d.tolerance);
-  const selectedScenario = selectedRegimen(d.tolerance, selected);
-  const simulation = !plan.blocked && selectedScenario ? simulateRegimen(d.baseline, selectedScenario.id) : null;
-  const simulatedTarget = risk.category && simulation ? calculateTarget(risk.category, d.baseline, simulation.ldl, target?.absoluteTarget === 40) : null;
   return <>
     <section className="card">
       <div className="section-heading"><div className="icon-box"><Icon name="layers"/></div><div><h2>Opciones de tratamiento</h2><p>Indicación y alternativas con principios activos y dosis.</p></div></div>
-      {!plan.blocked && <div className={`indication ${indication.level}`}><span className="eyebrow">{d.onTreatment ? 'INDICACIÓN SEGÚN SITUACIÓN BASAL' : '¿CUÁNDO INICIAR?'}</span><h3>{indication.title}</h3><p>{indication.detail}</p><span className="pill">{indication.strength}</span></div>}
+      {!plan.blocked && <div className={`indication ${indication.level}`}><span className="eyebrow">{d.onTreatment ? 'Indicación según situación basal' : '¿Cuándo iniciar?'}</span><h3>{indication.title}</h3><p>{indication.detail}</p><span className="pill">{indication.strength}</span></div>}
       {d.tolerance === 'none' && d.onTreatment && ['statin', 'statin-eze', 'statin-eze-pcsk9'].includes(d.therapy) && <Notice tone="warning">La pauta marcada incluye estatina y la tolerancia indica intolerancia completa. Revisa estos datos antes de decidir.</Notice>}
       <h3 className="spaced">{plan.title}</h3>
       <ol className="plan-list">{plan.steps.map((step, n) => <li key={step}><span>{n + 1}</span><p>{step}</p></li>)}</ol>
@@ -65,25 +58,6 @@ export function TreatmentAlgorithm({ data: d, target, risk }: InputProps & { tar
         </>}
         <p className="caption">Catálogo farmacológico contrastado el {DRUGS_REVIEWED}. La clasificación de intensidad no cambia los criterios de indicación ESC/EAS.</p>
       </>}
-    </section>
-    <section className="card compact">
-      <details><summary>Comparar combinaciones <span>Simulador</span></summary><div className="details-body">
-        <Notice>Estimaciones desde el <strong>LDL basal sin tratamiento</strong>. Son promedios de combinaciones de la figura 2; no se suman porcentajes ni se estima la respuesta exacta a un principio activo o dosis. Tampoco representan descensos adicionales sobre el LDL actual.</Notice>
-        {plan.blocked ? <p className="empty-text">Simulador suspendido hasta completar la valoración aplicable.</p> : !validLdl(d.baseline) ? <p className="empty-text">Introduce un LDL basal conocido en «Datos del paciente» para activar las estimaciones.</p> : <>
-          {simulation && selectedScenario ? <>
-            <div className="simulation"><div><span>LDL-c estimado</span><strong>{format(simulation.ldl)} <small>mg/dL</small></strong><p>Descenso aproximado: {simulation.reduction} %</p></div><span className={`pill ${simulatedTarget?.overall === 'met' ? 'positive' : 'amber'}`}>{simulatedTarget?.overall === 'met' ? 'Alcanzaría el objetivo' : 'No alcanzaría el objetivo'}</span></div>
-            <h3>Componentes de la combinación elegida</h3><DrugOptions groups={selectedScenario.components}/>
-          </> : <p className="caption">Selecciona una combinación para ver sus componentes y el resultado estimado. No hay ninguna pauta seleccionada por defecto.</p>}
-          <div className="comparison" aria-label="Comparación de LDL estimado">{available.map(regimen => {
-            const simulated = simulateRegimen(d.baseline, regimen.id)!;
-            return <button type="button" key={regimen.id} className={`bar-row ${selectedScenario?.id === regimen.id ? 'chosen' : ''}`} onClick={() => setSelected(regimen.id)} aria-pressed={selectedScenario?.id === regimen.id}>
-              <span>{regimen.name}<small> · ≈{regimen.reduction} %</small></span><div className="bar-track"><div style={{ width: `${100 - regimen.reduction}%` }}/></div><strong>{format(simulated.ldl)} <small>mg/dL</small></strong>
-            </button>;
-          })}</div>
-          <p className="caption">Respuesta individual variable. «Alcanzaría» describe solo el cálculo; no equivale a indicación, financiación ni eficacia clínica confirmada para ese paciente. Dentro de cada grupo se elige una alternativa; los componentes separados por «+» forman la combinación.</p>
-        </>}
-        <Source>ESC/EAS 2025 · figura 2</Source>
-      </div></details>
     </section>
   </>;
 }

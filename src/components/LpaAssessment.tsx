@@ -14,7 +14,7 @@ export function LpaDetails({ data: d }: { data: ClinicalInput }) {
   const limits = d.lpaUnit === 'mg/dL' ? ['<30', '30–50', '>50'] : ['<62', '62–105', '>105'];
   if (d.lpa === null) return null;
   return <section className="card compact"><details><summary>Lp(a): {lpa.title}</summary><div className="details-body">
-    <div className={`lpa-result ${lpa.elevated ? 'elevated' : ''}`}><div className="icon-box"><Icon name="drop" size={26}/></div><div><span className="eyebrow">INTERPRETACIÓN</span><h3>{lpa.title}</h3><p>{lpa.detail}</p></div></div>
+    <div className={`lpa-result ${lpa.elevated ? 'elevated' : ''}`}><div className="icon-box"><Icon name="drop" size={26}/></div><div><span className="eyebrow">Interpretación</span><h3>{lpa.title}</h3><p>{lpa.detail}</p></div></div>
     <div className="lpa-scale">{limits.map((text, index) => <div key={text}><span>{['Por debajo del rango', 'Riesgo progresivo', 'Modificador'][index]}</span><strong>{text}<small> {d.lpaUnit}</small></strong></div>)}</div>
     <p className="caption">El riesgo es continuo. Los puntos de corte orientan la decisión; no representan un límite biológico de normalidad. ESC/EAS 2025: &gt;50 mg/dL o &gt;105 nmol/L (IIa B).</p>
     <Source>ESC/EAS 2025 · sección 6 y recomendación 4</Source>
