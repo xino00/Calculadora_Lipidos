@@ -72,7 +72,7 @@ export default function App() {
   const target = risk.category ? calculateTarget(risk.category, data.baseline, data.onTreatment ? data.current : data.baseline, data.secondary && data.recurrentOrPolyvascular && data.consider40) : null;
   const lpa = interpretLpa(data.lpa, data.lpaUnit);
   const summary = [
-    `LÍPIDOS · CONSULTA | Marco ESC/EAS 2025 | Prototipo independiente, pendiente de validación clínica externa.`,
+    `DIANA LDL | Marco ESC/EAS 2025 | Prototipo independiente, pendiente de validación clínica externa.`,
     example ? 'CASO DE EJEMPLO — DATOS FICTICIOS' : '',
     `Edad: ${format(data.age, 0)} años. Prevención ${data.secondary ? 'secundaria' : 'primaria'}.`,
     `Riesgo: ${risk.category ? RISK_LABEL[risk.category] : 'sin determinar'}${risk.manual ? ' (indicado por el profesional)' : ''}.`,
@@ -128,10 +128,10 @@ export default function App() {
   return <div className="app-shell consultation">
     <a className="skip-link" href="#main">Saltar al contenido</a>
     <div className="workspace">
-      <header className="topbar"><a className="brand" href="#main" onClick={() => setScreen('risk')}><span className="brand-mark"><Icon name="pulse" size={23}/></span><span>Lípidos<small>Consulta</small></span></a><div className="header-actions"><button className="text-button" onClick={() => sourcesDialog.current?.showModal()}>Fuentes y método</button><button className="reset-button" onClick={reset}><Icon name="reset" size={16}/>Nuevo caso</button></div></header>
+      <header className="topbar"><a className="brand" href="#main" onClick={() => setScreen('risk')}><span className="brand-mark"><Icon name="target" size={23}/></span><span>Diana<small>LDL</small></span></a><div className="header-actions"><button className="text-button" onClick={() => sourcesDialog.current?.showModal()}>Fuentes y método</button><button className="reset-button" onClick={reset}><Icon name="reset" size={16}/>Nuevo caso</button></div></header>
       <main id="main">
         {screen === 'risk' ? <>
-          <div className="page-heading"><div><h1>Calculadora de lípidos</h1><p>Introduce los datos del paciente y obtén su riesgo, el objetivo de LDL-c y las opciones de tratamiento.</p></div><button className="example-button" onClick={loadExample}>{example ? 'Recargar ejemplo' : 'Explorar un ejemplo'}</button></div>
+          <div className="page-heading"><div><h1>Diana LDL</h1><p>Apunta al objetivo de LDL-c de cada paciente: riesgo, objetivo y pauta en cinco pasos, con la nota lista para la historia.</p></div><button className="example-button" onClick={loadExample}>{example ? 'Recargar ejemplo' : 'Explorar un ejemplo'}</button></div>
           <div className="trace-head"><dl><div><dt>Marco</dt><dd>ESC/EAS 2025</dd></div><div><dt>Estado</dt><dd><strong>Prototipo pendiente de validación clínica externa</strong>, herramienta independiente</dd></div><div><dt>Datos</dt><dd>Solo en memoria; se borran al recargar</dd></div></dl>{example && <b className="example-badge">Caso ficticio</b>}</div>
         </> : <p className="mini-head">Prototipo pendiente de validación clínica externa. Marco ESC/EAS 2025.{example && <b className="example-badge">Caso ficticio</b>}</p>}
         <nav className="workflow-nav" aria-label="Pasos de la consulta">

@@ -1,4 +1,4 @@
-/* Lípidos · Consulta
+/* Diana LDL
    Concept: a printed ECG-style readout. Plain paper, black ink; the result is a
    nomogram of LDL-c against the target. Ink is black. Red has one meaning only: the LDL
    target (the target line, the target value, the stretch of a trace inside it).
@@ -96,6 +96,7 @@ button:disabled { cursor: not-allowed; }
 .brand small { margin-left: 6px; font-size: 20px; font-weight: 400; color: var(--text-2); }
 .brand-mark { display: grid; place-items: center; width: 34px; height: 34px; border: 1.5px solid var(--ink); background: var(--field); color: var(--ink); }
 .brand-mark svg { width: 22px; height: 22px; stroke-width: 2.2; }
+.brand-mark svg circle:last-child { fill: var(--red); stroke: var(--red); stroke-width: 3; }
 .header-actions { display: flex; align-items: center; gap: 18px; }
 
 main { padding-top: 32px; }

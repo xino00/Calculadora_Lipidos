@@ -1,10 +1,12 @@
-# Lípidos · Consulta
+# Diana LDL
+
+*Apunta al objetivo de LDL-c de cada paciente.*
 
 [![Clinical tests and build](https://github.com/xino00/Calculadora_Lipidos/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/xino00/Calculadora_Lipidos/actions/workflows/ci.yml)
 
-**Calculadora clínica de riesgo cardiovascular, objetivos de LDL-c, lipoproteína(a) y tratamiento hipolipemiante en adultos, basada en la actualización 2025 de las guías ESC/EAS de dislipidemias.**
+**Diana LDL es una calculadora clínica de riesgo cardiovascular, objetivos de LDL-c, lipoproteína(a) y tratamiento hipolipemiante en adultos, basada en la actualización 2025 de las guías ESC/EAS de dislipidemias.** El nombre viene de la idea central: cada paciente tiene un objetivo de LDL-c, la diana, y la aplicación ayuda a ver cuánto falta y con qué pauta llegar.
 
-**Abrir la calculadora: [xino00.github.io/Calculadora_Lipidos](https://xino00.github.io/Calculadora_Lipidos/)**
+**Abrir Diana LDL: [xino00.github.io/Calculadora_Lipidos](https://xino00.github.io/Calculadora_Lipidos/)**
 
 > [!WARNING]
 > **Prototipo pendiente de validación clínica externa.** Es una herramienta de apoyo para profesionales sanitarios: no sustituye al juicio clínico ni a la lectura de la guía. No es una herramienta oficial de la ESC ni de la EAS ni cuenta con su aval.
@@ -20,9 +22,8 @@ Ayuda a aplicar de forma ordenada y trazable las recomendaciones ESC/EAS 2025 du
 | ¿Cuál es el riesgo cardiovascular del paciente? | Lo clasifica en bajo, moderado, alto o muy alto a partir de las condiciones clínicas (enfermedad cardiovascular aterosclerótica, aterosclerosis en imagen, diabetes, ERC, hipercolesterolemia familiar, factores aislados muy elevados) o, si no las hay, del SCORE2/SCORE2-OP, calculado en la propia aplicación o introducido desde la calculadora oficial. |
 | ¿Cuál es su objetivo de LDL-c y cuánto le falta? | Calcula el objetivo absoluto y, en riesgo alto o muy alto, el criterio de reducción ≥50 % desde el basal. Muestra el descenso adicional necesario en mg/dL y en porcentaje. |
 | ¿Cómo interpreto su Lp(a)? | La sitúa respecto a los umbrales de la guía, en mg/dL o nmol/L, sin convertir unidades ni reclasificar el riesgo automáticamente. |
-| ¿Cuándo tratar y con qué? | Indica si se recomienda o se debe considerar iniciar tratamiento, propone una ruta orientativa según tolerancia a estatinas, pauta actual y síndrome coronario agudo, y compara el LDL-c estimado con distintas combinaciones de fármacos. |
-
-Al terminar genera un **resumen en texto** para revisar y copiar a la historia clínica.
+| ¿Cuándo tratar y con qué? | Indica si se recomienda o se debe considerar iniciar tratamiento y propone una ruta orientativa según tolerancia a estatinas, pauta actual y síndrome coronario agudo. Un **nomograma** dibuja cada combinación de fármacos como una caída desde el LDL-c basal frente a la línea del objetivo; al elegir una, se escogen principio activo y dosis. |
+| ¿Qué escribo en la historia? | Genera una **nota en líneas cortas** con riesgo, LDL-c, objetivo, Lp(a), tratamiento previo y la pauta elegida, lista para copiar y pegar. También ofrece un resumen extendido de la valoración. |
 
 **Dirigida a** médicos y otros profesionales sanitarios que atienden a adultos en prevención cardiovascular: atención primaria, cardiología, medicina interna, endocrinología y residentes de estas especialidades.
 
@@ -65,24 +66,30 @@ La calculadora trabaja en mg/dL. Si se desconoce el LDL-c basal, no da por cumpl
 - **LDL-c basal de 190 mg/dL:** se considera al menos riesgo alto (≥190, tabla 4), aunque la tabla 3 imprime >190.
 - **Lp(a):** >50 mg/dL o >105 nmol/L se muestra como modificador de riesgo; el valor exacto de 105 nmol/L aparece como «en el umbral».
 - **SCORE2 calculado:** colesterol total y HDL-c en mg/dL se convierten a mmol/L con el factor 38,67; el riesgo se redondea a un decimal y se clasifica con ese valor. Con PA sistólica ≥180 mmHg o colesterol total >310 mg/dL, la categoría es al menos alta (tabla 3).
-- **Diabetes:** aplica los criterios de la tabla 3; no implementa SCORE2-Diabetes y pide valoración específica en los casos que la tabla no cubre.
-- **Simulador de fármacos:** aplica la reducción media de cada combinación (figura 2) al LDL-c basal sin tratamiento. No suma porcentajes de fármacos individuales ni los aplica sobre el LDL-c ya tratado.
+- **Diabetes:** aplica los criterios de la tabla 3; no implementa SCORE2-Diabetes y pide valoración específica en los casos que la tabla no cubre. Los factores mayores se marcan uno a uno (edad avanzada, hipertensión arterial, dislipidemia, tabaquismo, obesidad) o con «Ninguno»; sin marcar nada se considera no valorado. La guía no fija un umbral para la edad avanzada (*older age*): queda a criterio del profesional.
+- **Nomograma de combinaciones:** aplica la reducción media de cada combinación (figura 2) al LDL-c basal sin tratamiento. No suma porcentajes de fármacos individuales ni los aplica sobre el LDL-c ya tratado. Ninguna combinación aparece seleccionada por defecto.
+- **Nota para la historia:** cada principio activo, dosis y vía que se puede elegir procede del catálogo contrastado (lo comprueban las pruebas automáticas). La aplicación no elige la dosis: la nota recoge solo lo que marca el profesional y muestra los avisos de ficha técnica que correspondan (rosuvastatina 40 mg, ácido bempedoico).
 
 El detalle de cada regla, con su tabla o figura de origen, está en [docs/clinical-method.md](docs/clinical-method.md).
 
 ## Cómo se usa
 
-1. **Datos del paciente:** contexto clínico, perfil lipídico, tratamiento actual, tolerancia y situaciones especiales. Solo se muestran los campos aplicables de SCORE2, diabetes o ERC. Lp(a) y reclasificación son opcionales. Pulsa «Ver resultado y opciones».
-2. **Resultado y tratamiento:** riesgo, objetivo y descenso necesario, seguidos de opciones con principios activos, dosis y enlaces a sus fuentes. El simulador y los detalles son desplegables. «Editar datos» conserva el caso; «Copiar resumen» permite revisarlo antes de copiarlo.
+La consulta se recorre en **cinco pasos cortos**. Una barra fija en la parte inferior permite pasar al siguiente o volver al anterior sin desplazarse hasta el final.
 
-La intensidad de una estatina se concreta por principio activo **y dosis**. El catálogo aporta alternativas de referencia, no elige una pauta individual. Las combinaciones conservan las reducciones medias ESC/EAS: no predicen el efecto específico de una dosis. No hay escenario seleccionado por defecto.
+1. **Riesgo:** contexto clínico (prevención primaria o secundaria, diabetes, ERC, hipercolesterolemia familiar…), datos de SCORE2 cuando aplica y modificadores opcionales.
+2. **LDL y tratamiento:** LDL-c basal y actual, tolerancia a estatinas, pauta actual, situaciones especiales y Lp(a).
+3. **Resultado:** categoría de riesgo, objetivo de LDL-c, descenso que falta y ruta terapéutica de la guía. Los detalles del objetivo, la Lp(a) y los motivos de la valoración son desplegables.
+4. **Pauta:** el nomograma compara el LDL-c estimado con cada combinación frente al objetivo. Al pulsar una, sus fichas permiten elegir principio activo y dosis (solo las de esa combinación; por ejemplo, estatina de alta intensidad: atorvastatina 40/80 mg o rosuvastatina 20/40 mg). El catálogo completo queda como referencia plegada.
+5. **Nota:** llega con la pauta elegida y todo sigue siendo editable: acción (iniciar, ajustar, mantener), estatina y dosis, ezetimiba, ácido bempedoico, anti-PCSK9, control en 4–6 semanas y un comentario opcional. «Copiar nota» la lleva al portapapeles.
 
-«Explorar un ejemplo» carga un caso ficticio; «Nuevo caso» borra todos los campos. «Fuentes y método» abre una consulta auxiliar sin abandonar el caso. Los valores inválidos mantienen la pantalla de datos y enfocan el campo; los datos incompletos permiten un resultado parcial con los apartados pendientes identificados.
+La intensidad de una estatina se concreta por principio activo **y dosis**. Las combinaciones conservan las reducciones medias ESC/EAS: no predicen el efecto específico de una dosis.
+
+«Explorar un ejemplo» carga un caso ficticio; «Nuevo caso» borra todos los campos y la pauta. «Fuentes y método» abre una consulta auxiliar sin abandonar el caso. Si un valor no es válido, al avanzar la aplicación vuelve al paso donde está y enfoca el campo; los datos incompletos permiten un resultado parcial con los apartados pendientes identificados.
 
 ## Qué no hace
 
 - No calcula SCORE2-Diabetes ni usa SCORE2 en personas con diabetes, ERC o hipercolesterolemia familiar.
-- No prescribe dosis individuales ni comprueba todas las contraindicaciones e interacciones.
+- No elige dosis por el profesional ni comprueba todas las contraindicaciones e interacciones: la nota solo recoge lo que se marca.
 - No propone tratamiento farmacológico en embarazo o lactancia, hepatopatía activa o diálisis.
 - No cubre pediatría, hipertrigliceridemia, criterios de financiación del SNS ni la valoración completa de la ERC.
 - No convierte la Lp(a) entre mg/dL y nmol/L ni eleva la categoría de riesgo automáticamente por modificadores; la reclasificación es una decisión del profesional.
@@ -90,11 +97,11 @@ La intensidad de una estatina se concreta por principio activo **y dosis**. El c
 
 ## Privacidad
 
-Todo se procesa en el navegador y se mantiene solo en memoria: sin servidor, sin analítica, sin cookies ni almacenamiento local y sin datos clínicos en la URL. No se piden datos identificativos. Recargar la página o pulsar «Nuevo caso» borra la información. Solo el botón de copiar escribe el resumen en el portapapeles.
+Todo se procesa en el navegador y se mantiene solo en memoria: sin servidor, sin analítica, sin cookies ni almacenamiento local y sin datos clínicos en la URL. No se piden datos identificativos. Recargar la página o pulsar «Nuevo caso» borra la información. Solo los botones de copiar escriben el resumen o la nota en el portapapeles.
 
 ## Validación
 
-189 pruebas automatizadas con casos sintéticos comprueban los valores límite de cada regla: cálculo de SCORE2/SCORE2-OP frente a los ejemplos de los artículos originales y calculadoras de referencia, cortes de SCORE2, edades, filtrado glomerular, criterios de diabetes, LDL-c basal ≥190, reducción ≥50 %, umbrales de Lp(a), combinaciones de fármacos, situaciones especiales, exclusión de estatinas por intolerancia completa y ausencia de selección automática. Verifican que las reglas están implementadas como se describen; **no son una validación clínica**.
+198 pruebas automatizadas con casos sintéticos comprueban los valores límite de cada regla: cálculo de SCORE2/SCORE2-OP frente a los ejemplos de los artículos originales y calculadoras de referencia, cortes de SCORE2, edades, filtrado glomerular, criterios de diabetes, LDL-c basal ≥190, reducción ≥50 %, umbrales de Lp(a), combinaciones de fármacos, situaciones especiales, exclusión de estatinas por intolerancia completa, ausencia de selección automática y la nota para la historia (cada principio activo, dosis y vía contrastados con el catálogo, texto generado y avisos de ficha técnica). Verifican que las reglas están implementadas como se describen; **no son una validación clínica**.
 
 Antes de usarla en la práctica asistencial se necesita una revisión independiente con casos reales representativos, el contraste con las calculadoras oficiales y, si se integra en un centro, su aprobación institucional. Más detalle en [docs/validation.md](docs/validation.md).
 
@@ -114,10 +121,10 @@ npm run preview  # sirve dist/ en local
 
 ```text
 src/
-  clinical/       Reglas clínicas como funciones puras: riesgo, LDL-c, Lp(a), umbrales, escenarios
-  components/     Formularios y panel de resultados
+  clinical/       Reglas clínicas como funciones puras: riesgo, LDL-c, Lp(a), umbrales, escenarios y nota
+  components/     Pasos de la consulta, nomograma, selector de pauta y nota
   tests/          Casos clínicos sintéticos y pruebas de valores límite
-  App.tsx         Estado efímero y navegación
+  App.tsx         Estado efímero y navegación entre los cinco pasos
   styles.css      Interfaz responsive sin recursos externos
 .github/workflows/
   ci.yml          Instalación, pruebas y compilación en cada cambio de main y cada pull request
