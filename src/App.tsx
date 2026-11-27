@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { EMPTY, RISK_LABEL, REGION_LABEL, type ClinicalInput } from './clinical/types';
-import { SCORE2_LIMITS, assessRisk } from './clinical/risk';
+import { SCORE2_LIMITS, assessRisk, pendingReason } from './clinical/risk';
 import { calculateTarget } from './clinical/targets';
 import { format } from './clinical/format';
 import { interpretLpa } from './clinical/lpa';
@@ -143,11 +143,11 @@ export default function App() {
           {errors.length > 0 && <div id="input-errors" tabIndex={-1}><Notice tone="warning"><strong>Revisa los datos</strong><ul>{errors.map(e => <li key={e}>{e}</li>)}</ul></Notice></div>}
           {attempted && !errors.length && risk.error && <Notice tone="warning">{risk.error} Puedes ver el resultado parcial; lo que falte quedará pendiente.</Notice>}
           <div data-step="risk" hidden={screen !== 'risk'}><RiskAssessment data={data} update={update}/><ScoreInputs data={data} update={update} risk={risk}/><RiskModifiers data={data} update={update} risk={risk}/></div>
-          <div data-step="ldl" hidden={screen !== 'ldl'}><LipidInputs data={data} update={update}/><TreatmentInputs data={data} update={update}/><LpaAssessment data={data} update={update}/></div>
+          <div data-step="ldl" hidden={screen !== 'ldl'}><LipidInputs data={data} update={update} risk={risk}/><TreatmentInputs data={data} update={update}/><LpaAssessment data={data} update={update}/></div>
         </section>
 
         {screen === 'results' && <section className="result-page" aria-label="Resultado">
-          <ResultsPanel data={data} risk={risk} target={target} onSummary={showSummary}/>
+          <ResultsPanel data={data} risk={risk} target={target} onSummary={showSummary} update={update} onEdit={reason => setScreen(/tratamiento/i.test(reason) ? 'ldl' : 'risk')}/>
           {risk.error && <Notice tone="warning">{risk.error}</Notice>}
           <TreatmentAlgorithm data={data} update={update} risk={risk} target={target} part="plan"/>
           <TargetDetails target={target}/>
@@ -166,7 +166,8 @@ export default function App() {
         </section>}
 
         <div className="input-actions step-bar">
-          {prev ? <button className="reset-button" onClick={() => setScreen(prev)}>Anterior<span className="step-bar-name">: {LABEL[prev]}</span></button> : <p>Solo se muestran los campos aplicables.</p>}
+          {prev && <button className="reset-button" onClick={() => setScreen(prev)}>Anterior<span className="step-bar-name">: {LABEL[prev]}</span></button>}
+          {isData(screen) && <p className={`risk-live ${risk.category ? `risk-${risk.category}` : 'risk-pending'}`} role="status">{risk.category ? <>Riesgo: <b>{RISK_LABEL[risk.category].toLowerCase()}</b></> : <>Riesgo pendiente: {pendingReason(risk)}</>}</p>}
           {next ? <button className="primary-button" onClick={() => goTo(next)}>Siguiente: {LABEL[next]}</button>
             : <button className="primary-button" onClick={copyNote}><Icon name="copy" size={18}/>Copiar nota</button>}
         </div>

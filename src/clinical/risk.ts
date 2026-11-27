@@ -96,3 +96,16 @@ export function assessRisk(i: ClinicalInput): RiskResult {
   if (i.age >= 75) result.notices.push('En edad avanzada, individualiza según fragilidad, comorbilidad, interacciones y preferencias.');
   return result;
 }
+
+/* Notices that explain why no category could be assigned. */
+const BLOCKING = [/^No calcules SCORE2/, /^No uses SCORE2/, /^Completa/, /^SCORE2 sin calcular/, /^Confirma/, /^SCORE2\/SCORE2-OP se aplican/, /^Falta un FG/, /^Diabetes fuera de las categorías/, /^ERC con FG ≥60/];
+/** Why the risk is still pending, in one sentence; null when a category exists. Never leave the user without a reason. */
+export function pendingReason(r: RiskResult): string | null {
+  if (r.category) return null;
+  if (r.error && /^(Corrige|Introduce|Ámbito)/.test(r.error)) return r.error;
+  const notice = r.notices.find(text => BLOCKING.some(rule => rule.test(text)));
+  if (notice) return notice;
+  if (r.error) return r.error;
+  if (r.scoreEligible) return 'Faltan datos para SCORE2: sexo, tabaquismo, colesterol total, HDL-c y PA sistólica, o el resultado oficial confirmado.';
+  return 'Completa el contexto clínico para clasificar el riesgo.';
+}

@@ -1,3 +1,4 @@
+import { useId } from 'react';
 import type { ClinicalInput, DiabetesFactor, RiskCategory, RiskResult } from '../clinical/types';
 import { REGION_LABEL, RISK_LABEL } from '../clinical/types';
 import { RANK, SCORE2_LIMITS, missingScoreInputs } from '../clinical/risk';
@@ -60,12 +61,20 @@ export function ScoreInputs({ data: d, update, risk }: InputProps & { risk: Risk
   );
 }
 
+/** The clinician's own category. Used in «Modificadores» and, when the guideline leaves the case to clinical judgement, in Resultado. */
+export function ClinicalCategory({ data: d, update, risk, placeholder = 'Ej.: valoración conjunta de modificadores' }: InputProps & { risk: RiskResult; placeholder?: string }) {
+  const select = useId(), reason = useId();
+  return <div className="clinical-category">
+    <div className="field"><label htmlFor={select}>Categoría indicada por el profesional</label><select id={select} value={d.reclassified} onChange={e => update({ reclassified: e.target.value as ClinicalInput['reclassified'] })}><option value="">{risk.original ? 'Mantener evaluación automática' : 'Elige la categoría'}</option>{(Object.keys(RISK_LABEL) as RiskCategory[]).filter(k => !risk.original || RANK[k] >= RANK[risk.original]).map(k => <option value={k} key={k}>{RISK_LABEL[k]}</option>)}</select></div>
+    {d.reclassified && <div className="field spaced"><label htmlFor={reason}>Motivo clínico (sin datos identificativos)</label><input id={reason} value={d.reclassificationReason} maxLength={200} placeholder={placeholder} onChange={e => update({ reclassificationReason: e.target.value })}/><small>{d.reclassificationReason.trim().length >= 8 ? 'Aplicada.' : 'Se aplica al escribir un motivo de al menos 8 caracteres.'} No permite rebajar una categoría automática.</small></div>}
+  </div>;
+}
+
 export function RiskModifiers({ data: d, update, risk }: InputProps & { risk: RiskResult }) {
   return (
     <section className="card compact"><details><summary>Modificadores y reclasificación clínica <span>Opcional</span></summary><div className="details-body"><Check checked={d.modifier} onChange={modifier => update({ modifier })} label="Otros modificadores presentes" detail="Antecedentes familiares prematuros, placa subclínica, enfermedad inflamatoria, entre otros (cuadro 1)."/>
       <p className="caption">Lp(a) elevada y otros modificadores requieren juicio clínico. Esta aplicación nunca suma puntos ni eleva automáticamente la categoría por ellos.</p>
-      <div className="field"><label htmlFor="reclassify">Categoría indicada por el profesional</label><select id="reclassify" value={d.reclassified} onChange={e => update({ reclassified: e.target.value as ClinicalInput['reclassified'] })}><option value="">Mantener evaluación automática</option>{(Object.keys(RISK_LABEL) as RiskCategory[]).filter(k => !risk.original || RANK[k] >= RANK[risk.original]).map(k => <option value={k} key={k}>{RISK_LABEL[k]}</option>)}</select></div>
-      {d.reclassified && <div className="field spaced"><label htmlFor="reason">Motivo clínico (sin datos identificativos)</label><input id="reason" value={d.reclassificationReason} maxLength={200} placeholder="Ej.: valoración conjunta de modificadores" onChange={e => update({ reclassificationReason: e.target.value })}/><small>Se aplica con ≥8 caracteres. No permite rebajar una categoría automática.</small></div>}
+      <ClinicalCategory data={d} update={update} risk={risk}/>
       <Source>ESC/EAS 2025 · cuadro 1 y recomendación 1</Source></div></details></section>
   );
 }

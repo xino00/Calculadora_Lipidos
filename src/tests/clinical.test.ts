@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { RANK, assessRisk, classifyScore, missingScoreInputs, scoreModel } from '../clinical/risk';
+import { RANK, assessRisk, classifyScore, missingScoreInputs, pendingReason, scoreModel } from '../clinical/risk';
 import { MG_PER_MMOL, calculateScore2, uncalibratedScore2 } from '../clinical/score2';
 import { EMPTY, type ClinicalInput, type RiskCategory } from '../clinical/types';
 import { calculateTarget } from '../clinical/targets';
@@ -178,4 +178,16 @@ describe('Escenarios farmacológicos y barreras clínicas', () => {
 describe('Entrada numérica española', () => {
   it.each([['10,5',10.5], ['10.5',10.5], ['0',0], ['',null], [' 55 ',55]] as const)('%s → %s', (raw, number) => expect(parseNumber(raw)).toBe(number));
   it.each(['1e3', '55 mg/dL', '1,000.0', '-1', 'NaN', 'Infinity'])('rechaza ambigüedad %s', raw => expect(Number.isNaN(parseNumber(raw))).toBe(true));
+});
+
+describe('Riesgo pendiente: siempre con motivo visible', () => {
+  it('sin edad', () => expect(pendingReason(assessRisk({ ...EMPTY }))).toBe('Introduce la edad para empezar.'));
+  it('SCORE2 con lípidos bajo tratamiento sin confirmar que son previos', () => {
+    expect(pendingReason(assessRisk(calc({ onTreatment: true })))).toMatch(/^No calcules SCORE2 con lípidos bajo tratamiento/);
+    expect(pendingReason(assessRisk(calc({ onTreatment: true, scorePretreatment: true })))).toBeNull();
+  });
+  it('SCORE2 con datos incompletos', () => expect(pendingReason(assessRisk(calc({ sbp: null })))).toMatch(/^Faltan datos para SCORE2/));
+  it('diabetes sin duración ni factores', () => expect(pendingReason(assessRisk(patient({ diabetes: 'type2' })))).toBe('Completa duración y factores de riesgo de la diabetes.'));
+  it('fuera del rango de edad de SCORE2', () => expect(pendingReason(assessRisk(patient({ age: 35 })))).toMatch(/^SCORE2\/SCORE2-OP se aplican de 40 a 89/));
+  it('con categoría no hay motivo pendiente', () => expect(pendingReason(assessRisk(patient({ secondary: true })))).toBeNull());
 });

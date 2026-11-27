@@ -1,11 +1,15 @@
 import { format } from '../clinical/format';
 import type { TargetResult } from '../clinical/targets';
 import type { InputProps } from './RiskAssessment';
+import type { RiskResult } from '../clinical/types';
 import { Check, Icon, Notice, NumberField, Source } from './ui';
-export function LipidInputs({ data: d, update }: InputProps) {
+export function LipidInputs({ data: d, update, risk }: InputProps & { risk: RiskResult }) {
   return <><section className="card"><div className="section-heading"><div className="icon-box"><Icon name="drop"/></div><div><h2>Perfil de LDL-c</h2><p>El basal y el actual responden a preguntas distintas.</p></div></div>
     <Check checked={d.onTreatment} onChange={onTreatment => update({ onTreatment, current: null, scorePretreatment: false, therapy: 'unknown' })} label="Actualmente recibe tratamiento hipolipemiante"/>
     <div className="field-grid spaced"><NumberField label="LDL-c basal sin tratamiento" value={d.baseline} onChange={baseline => update({ baseline })} unit="mg/dL" min={0.1} hint={d.onTreatment ? 'Dejar vacío si se desconoce; no se reconstruye.' : 'Se utiliza también como LDL actual.'}/>{d.onTreatment ? <NumberField label="LDL-c actual con tratamiento" value={d.current} onChange={current => update({ current })} unit="mg/dL" min={0.1} hint="Medido con la pauta actual."/> : <div className="linked-value"><span>LDL actual</span><strong>{format(d.baseline)} <small>mg/dL</small></strong><p>Coincide con el basal al no recibir tratamiento.</p></div>}</div>
+    {d.onTreatment && risk.scoreEligible && <div className="inset"><Check checked={d.scorePretreatment} onChange={scorePretreatment => update({ scorePretreatment })}
+      label={d.scoreMode === 'calc' ? 'Colesterol total y HDL-c del paso 1 previos al tratamiento' : 'SCORE2 del paso 1: resultado histórico previo al tratamiento'}
+      detail="Necesario para calcular el riesgo con SCORE2: no se calcula con lípidos bajo tratamiento."/></div>}
     {d.baseline !== null && d.baseline >= 190 && <Notice tone="warning">LDL basal ≥190 mg/dL implica al menos riesgo alto. Valorar hipercolesterolemia familiar y causas secundarias.</Notice>}
     {d.secondary && d.recurrentOrPolyvascular && <Check checked={d.consider40} onChange={consider40 => update({ consider40 })} label="Valorar objetivo <40 mg/dL" detail="Opción clase IIb para recurrencia con estatina máxima o enfermedad polivascular. No es el objetivo obligatorio de toda prevención secundaria."/>}
     <Source>ESC/EAS 2025 · figura 1 y tabla 4</Source>
